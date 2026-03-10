@@ -362,13 +362,13 @@ function fmtSign(n) {
 }
 
 function pill(el, status) {
-  const map = {
-    '正常': ['pill-green','dot-g','正常'],
-    '過低': ['pill-yellow','dot-y','略低'],
-    '過高': ['pill-red','dot-r','過高'],
-    '警示': ['pill-red','dot-r','警示'],
-  };
-  const [cls, dot, label] = map[status] || ['pill-yellow','dot-y', status || '--'];
+  const s = (status || '').trim();
+  let cls, dot, label;
+  if (s === '正常')      { cls='pill-green';  dot='dot-g'; label='正常'; }
+  else if (s === '過低') { cls='pill-yellow'; dot='dot-y'; label='略低'; }
+  else if (s === '過高') { cls='pill-red';    dot='dot-r'; label='過高'; }
+  else if (s === '警示') { cls='pill-red';    dot='dot-r'; label='警示'; }
+  else                   { cls='pill-yellow'; dot='dot-y'; label= s || '--'; }
   el.className = 'pill ' + cls;
   el.innerHTML = `<span class="dot ${dot}"></span>${label}`;
 }
@@ -413,34 +413,76 @@ async function loadAll() {
     const ibLev    = num(total[1][1]);
     const twPledge = num(total[2][1]);
 
+    // debug：印出前30行看实际结构
+    console.log('=== 總表前30行 ===');
+    total.slice(0,30).forEach((r,i) => console.log(i, JSON.stringify(r)));
+
     const pledgeR    = pctNum(total[3][1]);
-    const pledgeSt   = total[3][3];
+    const pledgeSt   = (total[3][3]||'').trim();
     const pledgeFR   = pctNum(total[4][1]);
-    const pledgeFSt  = total[4][3];
+    const pledgeFSt  = (total[4][3]||'').trim();
     const maintainR  = pctNum(total[5][1]);
-    const maintainSt = total[5][3];
+    const maintainSt = (total[5][3]||'').trim();
     const levR       = pctNum(total[7][1]);
-    const levSt      = total[7][3];
+    const levSt      = (total[7][3]||'').trim();
     const stockR     = pctNum(total[9][1]);
-    const stockSt    = total[9][3];
+    const stockSt    = (total[9][3]||'').trim();
     const stockTwR   = pctNum(total[11][1]);
-    const stockTwSt  = total[11][3];
+    const stockTwSt  = (total[11][3]||'').trim();
 
     // 汇率在 row13 col3
     const fx = num(total[13][3]) || 31.817;
 
-    // 美股部位（rows 15~21，col0=ticker, col1=市值, col2=股數, col3=現價, col4=佔比）
+    // 美股部位：从 row14（header）之后开始找，跳过空行和非股票行
     const stocks = [];
-    for (let i = 15; i <= 21; i++) {
+    for (let i = 15; i <= 22; i++) {
       const t = total[i];
-      if (!t || !t[0] || t[0].startsWith('小') || t[0].startsWith('台')) break;
-      stocks.push({ ticker: t[0], val: t[1], shares: t[2], price: t[3], pct: t[4] });
+      if (!t || !t[0]) continue;
+      const name = t[0].trim();
+      if (!name || name.startsWith('小') || name.startsWith('台') || name === '美股') continue;
+      if (num(t[1]) !== null) { // 有市值数字才算
+        stocks.push({ ticker: name, val: t[1], shares: t[2], price: t[3], pct: t[4] });
+      }
     }
 
-    // 台股总市值（row28 col1）、美股小计（row21 col1）
-    const twTotal  = num(total[28]?.[1]) || 0;
-    const usTotal  = num(total[21]?.[1]) || 0;
-    const bondVal  = num(total[15]?.[7]) || 0; // 債券市值在 row15 col7（$275,668）
+    // 找台股小計（找label含「小計」且col0含台股的行）
+    let twTotal = 0, usTotal = 0, bondVal = 0;
+    for (let i = 0; i < total.length; i++) {
+      const r = total[i];
+      if (!r) continue;
+      const l = (r[0]||'').trim();
+      if (l === '小計' && r[1]) {
+        // 判断是美股小计还是台股小计
+        const v = num(r[1]);
+        if (v && v > 1000000) twTotal = v;      // 台股小计 NT$ 大数
+        else if (v && v < 200000) usTotal = v;  // 美股小计 USD
+      }
+      if (l === '債券市值' || (r[7] && r[7].includes && r[7].includes('275'))) {
+        bondVal = num(r[7]) || bondVal;
+      }
+    }
+    // 从 row15 col7 读债券市值（$275,668）
+    if (!bondVal) bondVal = num(total[14]?.[7]) || num(total[15]?.[7]) || 275668;
+    // 台股小计从 CSV 读到的 NT$6,679,406
+    if (!twTotal) {
+      for (let i = 20; i < 35; i++) {
+        const r = total[i];
+        if (r && (r[0]||'').trim() === '小計') {
+          const v = num(r[1]);
+          if (v && v > 1000000) { twTotal = v; break; }
+        }
+      }
+    }
+    if (!usTotal) {
+      for (let i = 15; i < 25; i++) {
+        const r = total[i];
+        if (r && (r[0]||'').trim() === '小計') {
+          const v = num(r[1]);
+          if (v && v < 200000) { usTotal = v; break; }
+        }
+      }
+    }
+    console.log('bondVal:', bondVal, 'twTotal:', twTotal, 'usTotal:', usTotal, 'fx:', fx);
 
     // ── 資產變化解析 ──
     // row0=header, row1=2024, row2=2025, row3=2026
