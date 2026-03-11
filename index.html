@@ -158,12 +158,8 @@
   .neg { color: var(--red); }
 
   /* loading */
-  .overlay {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-    z-index: 99; transition: opacity 0.4s;
-  }
-  .overlay.hide { opacity: 0; pointer-events: none; }
+  .overlay { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 99; }
+  .overlay.hide { display: none; }
   .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .overlay-text { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.12em; }
@@ -182,7 +178,7 @@
 </head>
 <body>
 
-<div class="overlay" id="overlay">
+<div class="overlay hide" id="overlay">
   <div class="spinner"></div>
   <div class="overlay-text">正在讀取 Google Sheet...</div>
 </div>
@@ -447,14 +443,13 @@ async function loadAll() {
     // 汇率 row13 col3
     const fx = num(total[13][3]) || 31.817;
 
-    // ── 資產變化解析 ──
-    const ytd25v  = num(yearChg[2][6]);
-    const tgt25   = num(yearChg[2][9]);
-    const rate25  = pctNum(yearChg[2][10]);
-    const ibkr25  = num(yearChg[2][1]);
-    const tw25    = num(yearChg[2][2]);
-    const etf25   = num(yearChg[2][3]);
-    const ytd26   = num(yearChg[3][6]);
+    // ── 資產變化解析（2026 row3, 2025 row2）──
+    const ytd25v  = num(yearChg[2][6]);   // 2025全年總金額
+    const tgt25   = num(yearChg[3][9]);   // 2026預算目標
+    const ibkr26  = num(yearChg[3][1]);   // 2026 IBKR
+    const tw26    = num(yearChg[3][2]);   // 2026 台股基金
+    const etf26   = num(yearChg[3][3]);   // 2026 ETF
+    const ytd26   = num(yearChg[3][6]);   // 2026 總金額
 
     // ── 更新 UI ──
 
@@ -476,10 +471,10 @@ async function loadAll() {
     ytdEl.className = 'med-val ' + (ytd26 >= 0 ? 'pos' : 'neg');
     document.getElementById('ytdRate').textContent = ytd26 && tgt25 ? (ytd26/tgt25*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTarget').textContent = tgt25 ? fmt(tgt25) : '--';
-    document.getElementById('c-ibkr').textContent = ibkr25 ? fmtSign(ibkr25) : '--';
-    document.getElementById('c-ibkr').className = ibkr25 >= 0 ? 'pos' : 'neg';
-    document.getElementById('c-tw').textContent = tw25 ? fmtSign(tw25) : '--';
-    document.getElementById('c-etf').textContent = etf25 ? fmtSign(etf25) : '--';
+    document.getElementById('c-ibkr').textContent = ibkr26 ? fmtSign(ibkr26) : '--';
+    document.getElementById('c-ibkr').className = ibkr26 >= 0 ? 'pos' : 'neg';
+    document.getElementById('c-tw').textContent = tw26 ? fmtSign(tw26) : '--';
+    document.getElementById('c-etf').textContent = etf26 ? fmtSign(etf26) : '--';
     document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
     document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
 
@@ -555,8 +550,9 @@ async function loadAll() {
 
     const usStockTWD = usTotal * fx;
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
+    // 淨資產 = 總資產 - IB槓桿(TWD) - 台灣質借(TWD)
     const ibLevTWD   = Math.abs(ibLev) * fx;
-    const netAsset   = grandTotal - ibLevTWD;
+    const netAsset   = grandTotal - ibLevTWD - twPledge;
 
     console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
     console.log('twETFV:', twETFV, 'twFundV:', twFundV, 'grandTotal:', grandTotal);
@@ -568,7 +564,7 @@ async function loadAll() {
 
     document.getElementById('allocSub').innerHTML =
       `總資產(含槓桿) <strong style="color:var(--text)">NT$${fmt(grandTotal)}</strong> &nbsp;·&nbsp; 淨資產 <strong style="color:var(--green)">NT$${fmt(netAsset)}</strong><br>` +
-      `債券 USD $${fmt(bondUSD)} / NT$${fmt(bondTWD)} &nbsp;·&nbsp; 股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
+      `債券 NT$${fmt(bondTWD)} &nbsp;·&nbsp; 美股 NT$${fmt(usStockTWD)} &nbsp;·&nbsp; 股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
 
     // 美股表格
     let usHtml = stocks.map(s => `<tr>
