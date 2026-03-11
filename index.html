@@ -608,11 +608,16 @@ async function loadAll() {
     document.getElementById('pledgeFR').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
     pill(document.getElementById('pledgeFPill'), pledgeFSt);
 
-    document.getElementById('stockR').textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--';
-    pill(document.getElementById('stockPill'), stockSt);
-
-    document.getElementById('stockTwR').textContent = stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--';
-    pill(document.getElementById('stockTwPill'), stockTwSt);
+    const stockREl = document.getElementById('stockR');
+    if (stockREl) {
+      stockREl.textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--';
+      stockREl.style.color = stockSt === '過高' ? 'var(--red)' : stockSt === '正常' ? 'var(--green)' : 'var(--yellow)';
+    }
+    const stockTwREl = document.getElementById('stockTwR');
+    if (stockTwREl) {
+      stockTwREl.textContent = stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--';
+      stockTwREl.style.color = stockTwSt === '過高' ? 'var(--red)' : stockTwSt === '正常' ? 'var(--green)' : 'var(--yellow)';
+    }
 
     document.getElementById('footerNote').textContent =
       `Google Sheet 同步 · ${now.toLocaleDateString('zh-TW')} · USD/TWD ${fx.toFixed(3)}`;
@@ -620,8 +625,11 @@ async function loadAll() {
     document.getElementById('overlay').classList.add('hide');
 
   } catch(e) {
-    console.error(e);
-    document.getElementById('errBar').style.display = 'block';
+    console.error('loadAll error:', e);
+    // 只在完全拿不到資料時才顯示錯誤條
+    if (!document.getElementById('ibNet').textContent || document.getElementById('ibNet').textContent === '--') {
+      document.getElementById('errBar').style.display = 'block';
+    }
     document.getElementById('overlay').classList.add('hide');
   }
 }
