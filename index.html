@@ -509,69 +509,110 @@ async function loadAll() {
     document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
     pill(document.getElementById('maintainPill'), maintainSt);
 
-    // 資產配置（全部换算成 TWD）
-    // 债券 $275,668 USD → TWD
-    const bondTWD  = bondVal * fx;           // ~NT$8,770,944
-    // 台股基金（統一奔騰+統一黑馬+安聯科技+安聯大壩）row30~33
-    const twFundV  = [30,31,32,33].reduce((s,i) => s + (num(total[i]?.[1])||0), 0);
-    // 台股ETF（row23~29）
-    const twETFV   = [23,24,25,26,27,28,29].reduce((s,i) => s + (num(total[i]?.[1])||0), 0);
-    // 美股 USD → TWD
-    const usV      = usTotal * fx;
-    const grandTotal = bondTWD + twFundV + twETFV + usV;
+    // 動態掃描，不依賴固定行號
+    let bondUSD = 0, bondTWD = 0;
+    let usTotal = 0;
+    let twETFV = 0, twFundV = 0;
+    const stocks = [], etfList = [], fundList = [];
 
-    setBar('bar-bond', 'pct-bond', bondTWD  / grandTotal);
-    setBar('bar-tw',   'pct-tw',   twFundV  / grandTotal);
-    setBar('bar-etf',  'pct-etf',  twETFV   / grandTotal);
-    setBar('bar-us',   'pct-us',   usV      / grandTotal);
+    let section = ''; // 目前在哪個區塊
+    for (let i = 0; i < total.length; i++) {
+      const r = total[i];
+      if (!r || !r[0]) continue;
+      const a = r[0].trim();
 
-    document.getElementById('allocSub').textContent =
-      `總估算市值 NT$${fmt(grandTotal)}　股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
+      // 偵測區塊
+      if (a === '美股') { section = 'us'; continue; }
+      if (a === '台股ETF/基金') { section = 'tw'; continue; }
 
-    // 美股表格（row15~20）
-    let usHtml = '';
-    stocks.forEach(s => {
-      usHtml += `<tr>
-        <td style="color:var(--blue)">${s.ticker}</td>
-        <td>${s.val || '--'}</td>
-        <td>${s.price || '--'}</td>
-        <td style="color:var(--muted)">${s.pct || '--'}</td>
-      </tr>`;
-    });
+      // 債券市值（H15/H16）
+      if (a === '美股' && r[6] === '債券部位') continue;
+      if (r[6] === '債券市值' || (i === 14 && r[7]?.includes('$'))) {
+        bondUSD = num(r[7]);
+      }
+      if (bondUSD && !bondTWD && r[7]?.includes('NT$')) {
+        bondTWD = num(r[7]);
+      }
+
+      // 美股小計
+      if (section === 'us' && a === '小計') {
+        usTotal = num(r[1]);
+        section = '';
+        continue;
+      }
+
+      // 台股小計
+      if (section === 'tw' && a === '小計') {
+        // 不用，直接加總
+        section = '';
+        continue;
+      }
+
+      // 美股個股
+      if (section === 'us' && num(r[1]) && !a.startsWith('TPE:')) {
+        stocks.push({ ticker: a, val: r[1], shares: r[2], price: r[3], pct: r[4] });
+      }
+
+      // 台股（ETF or 基金）
+      if (section === 'tw') {
+        const v = num(r[1]);
+        if (!v || !a) continue;
+        if (a.startsWith('TPE:')) {
+          twETFV += v;
+          etfList.push({ name: a.replace('TPE:',''), val: r[1], price: r[3], pct: r[4] });
+        } else {
+          twFundV += v;
+          fundList.push({ name: a, val: r[1], pct: r[4] });
+        }
+      }
+    }
+
+    // 備援：如果動態掃描沒抓到債券，用固定行
+    if (!bondUSD) bondUSD = num(total[14]?.[7]);
+    if (!bondTWD) bondTWD = num(total[15]?.[7]);
+    if (!usTotal) usTotal = num(total[21]?.[1]);
+
+    const usStockTWD = usTotal * fx;
+    const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
+    const ibLevTWD   = Math.abs(ibLev) * fx;
+    const netAsset   = grandTotal - ibLevTWD;
+
+    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
+    console.log('twETFV:', twETFV, 'twFundV:', twFundV, 'grandTotal:', grandTotal);
+
+    setBar('bar-bond', 'pct-bond', bondTWD    / grandTotal);
+    setBar('bar-tw',   'pct-tw',   twFundV    / grandTotal);
+    setBar('bar-etf',  'pct-etf',  twETFV     / grandTotal);
+    setBar('bar-us',   'pct-us',   usStockTWD / grandTotal);
+
+    document.getElementById('allocSub').innerHTML =
+      `總資產(含槓桿) <strong style="color:var(--text)">NT$${fmt(grandTotal)}</strong> &nbsp;·&nbsp; 淨資產 <strong style="color:var(--green)">NT$${fmt(netAsset)}</strong><br>` +
+      `債券 USD $${fmt(bondUSD)} / NT$${fmt(bondTWD)} &nbsp;·&nbsp; 股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
+
+    // 美股表格
+    let usHtml = stocks.map(s => `<tr>
+      <td style="color:var(--blue)">${s.ticker}</td>
+      <td>${s.val||'--'}</td>
+      <td>${s.price||'--'}</td>
+      <td style="color:var(--muted)">${s.pct||'--'}</td>
+    </tr>`).join('');
     document.querySelector('#stockTable tbody').innerHTML = usHtml || '<tr><td colspan="4">無資料</td></tr>';
 
-    // 台股ETF（row23~29）
-    const etfRows = [23,24,25,26,27,28,29];
-    let etfHtml = '';
-    etfRows.forEach(i => {
-      const r = total[i];
-      if (!r || !r[0]) return;
-      const name = r[0].replace('TPE:','');
-      const val  = r[1] || '--';
-      const price = r[3] || '--';
-      const pct  = r[4] || '--';
-      if (val === '0' || val === 0) return; // 跳过市值为0的
-      etfHtml += `<tr>
-        <td style="color:var(--yellow)">${name}</td>
-        <td>${val}</td>
-        <td>${price}</td>
-        <td style="color:var(--muted)">${pct}</td>
-      </tr>`;
-    });
+    // 台股ETF表格
+    let etfHtml = etfList.map(s => `<tr>
+      <td style="color:var(--yellow)">${s.name}</td>
+      <td>${s.val||'--'}</td>
+      <td>${s.price||'--'}</td>
+      <td style="color:var(--muted)">${s.pct||'--'}</td>
+    </tr>`).join('');
     document.querySelector('#etfTable tbody').innerHTML = etfHtml || '<tr><td colspan="4">無資料</td></tr>';
 
-    // 台股基金（row30~33）
-    const fundRows = [30,31,32,33];
-    let fundHtml = '';
-    fundRows.forEach(i => {
-      const r = total[i];
-      if (!r || !r[0]) return;
-      fundHtml += `<tr>
-        <td style="color:var(--accent)">${r[0]}</td>
-        <td>${r[1] || '--'}</td>
-        <td style="color:var(--muted)">${r[4] || '--'}</td>
-      </tr>`;
-    });
+    // 台股基金表格
+    let fundHtml = fundList.map(s => `<tr>
+      <td style="color:var(--accent)">${s.name}</td>
+      <td>${s.val||'--'}</td>
+      <td style="color:var(--muted)">${s.pct||'--'}</td>
+    </tr>`).join('');
     document.querySelector('#fundTable tbody').innerHTML = fundHtml || '<tr><td colspan="3">無資料</td></tr>';
 
     // 槓桿細項
