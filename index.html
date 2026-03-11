@@ -267,12 +267,30 @@
     <div class="sub-text" style="margin-top:10px;" id="allocSub">讀取中...</div>
   </div>
 
-  <!-- 5. 股票部位 -->
-  <div class="card c6">
+  <!-- 5. 美股部位 -->
+  <div class="card c4">
     <div class="label">美股部位</div>
     <table class="stock-table" id="stockTable">
-      <thead><tr><th>代號</th><th>市值</th><th>股數</th><th>現價</th><th>佔比</th></tr></thead>
-      <tbody><tr><td colspan="5" style="color:var(--muted);">讀取中...</td></tr></tbody>
+      <thead><tr><th>代號</th><th>市值</th><th>現價</th><th>佔比</th></tr></thead>
+      <tbody><tr><td colspan="4" style="color:var(--muted);">讀取中...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- 6. 台股ETF -->
+  <div class="card c4">
+    <div class="label">台股 ETF</div>
+    <table class="stock-table" id="etfTable">
+      <thead><tr><th>代號</th><th>市值</th><th>現價</th><th>佔比</th></tr></thead>
+      <tbody><tr><td colspan="4" style="color:var(--muted);">讀取中...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- 7. 台股基金 -->
+  <div class="card c4">
+    <div class="label">台股基金</div>
+    <table class="stock-table" id="fundTable">
+      <thead><tr><th>名稱</th><th>市值</th><th>佔比</th></tr></thead>
+      <tbody><tr><td colspan="3" style="color:var(--muted);">讀取中...</td></tr></tbody>
     </table>
   </div>
 
@@ -413,75 +431,37 @@ async function loadAll() {
     const ibLev    = num(total[1][1]);
     const twPledge = num(total[2][1]);
 
-    // debug：印出前30行看实际结构
-    console.log('=== 總表前30行 ===');
-    total.slice(0,30).forEach((r,i) => console.log(i, JSON.stringify(r)));
+    const pledgeR    = pctNum(total[3][1]);  // 38%
+    const pledgeSt   = (total[3][3]||'').trim();   // 正常
+    const pledgeFR   = pctNum(total[4][1]);  // 14%
+    const pledgeFSt  = (total[4][3]||'').trim();   // 過低
+    const maintainR  = pctNum(total[5][1]);  // 266%
+    const maintainSt = (total[5][3]||'').trim();   // 正常
+    const levR       = pctNum(total[7][1]);  // 43%
+    const levSt      = (total[7][3]||'').trim();   // 過高
+    const stockR     = pctNum(total[9][1]);  // 35%
+    const stockSt    = (total[9][3]||'').trim();   // 正常
+    const stockTwR   = pctNum(total[11][1]); // 60%
+    const stockTwSt  = (total[11][3]||'').trim();  // 過高
 
-    const pledgeR    = pctNum(total[3][1]);
-    const pledgeSt   = (total[3][3]||'').trim();
-    const pledgeFR   = pctNum(total[4][1]);
-    const pledgeFSt  = (total[4][3]||'').trim();
-    const maintainR  = pctNum(total[5][1]);
-    const maintainSt = (total[5][3]||'').trim();
-    const levR       = pctNum(total[7][1]);
-    const levSt      = (total[7][3]||'').trim();
-    const stockR     = pctNum(total[9][1]);
-    const stockSt    = (total[9][3]||'').trim();
-    const stockTwR   = pctNum(total[11][1]);
-    const stockTwSt  = (total[11][3]||'').trim();
-
-    // 汇率在 row13 col3
+    // 汇率 row13 col3
     const fx = num(total[13][3]) || 31.817;
 
-    // 美股部位：从 row14（header）之后开始找，跳过空行和非股票行
+    // 美股部位：row15~20（AAPU, GGLL, MSFU, UNHG, QLD, USD）
     const stocks = [];
-    for (let i = 15; i <= 22; i++) {
+    for (let i = 15; i <= 20; i++) {
       const t = total[i];
       if (!t || !t[0]) continue;
-      const name = t[0].trim();
-      if (!name || name.startsWith('小') || name.startsWith('台') || name === '美股') continue;
-      if (num(t[1]) !== null) { // 有市值数字才算
-        stocks.push({ ticker: name, val: t[1], shares: t[2], price: t[3], pct: t[4] });
-      }
+      stocks.push({ ticker: t[0], val: t[1], shares: t[2], price: t[3], pct: t[4] });
     }
 
-    // 找台股小計（找label含「小計」且col0含台股的行）
-    let twTotal = 0, usTotal = 0, bondVal = 0;
-    for (let i = 0; i < total.length; i++) {
-      const r = total[i];
-      if (!r) continue;
-      const l = (r[0]||'').trim();
-      if (l === '小計' && r[1]) {
-        // 判断是美股小计还是台股小计
-        const v = num(r[1]);
-        if (v && v > 1000000) twTotal = v;      // 台股小计 NT$ 大数
-        else if (v && v < 200000) usTotal = v;  // 美股小计 USD
-      }
-      if (l === '債券市值' || (r[7] && r[7].includes && r[7].includes('275'))) {
-        bondVal = num(r[7]) || bondVal;
-      }
-    }
-    // 从 row15 col7 读债券市值（$275,668）
-    if (!bondVal) bondVal = num(total[14]?.[7]) || num(total[15]?.[7]) || 275668;
-    // 台股小计从 CSV 读到的 NT$6,679,406
-    if (!twTotal) {
-      for (let i = 20; i < 35; i++) {
-        const r = total[i];
-        if (r && (r[0]||'').trim() === '小計') {
-          const v = num(r[1]);
-          if (v && v > 1000000) { twTotal = v; break; }
-        }
-      }
-    }
-    if (!usTotal) {
-      for (let i = 15; i < 25; i++) {
-        const r = total[i];
-        if (r && (r[0]||'').trim() === '小計') {
-          const v = num(r[1]);
-          if (v && v < 200000) { usTotal = v; break; }
-        }
-      }
-    }
+    // 美股小計 row21 col1 = $58,275 USD
+    const usTotal = num(total[21][1]) || 0;
+    // 台股小計 row34 col1 = NT$6,679,406
+    const twTotal = num(total[34][1]) || 0;
+    // 債券市值 row14 col7 = $275,668 USD
+    const bondVal = num(total[14][7]) || 0;
+
     console.log('bondVal:', bondVal, 'twTotal:', twTotal, 'usTotal:', usTotal, 'fx:', fx);
 
     // ── 資產變化解析 ──
@@ -529,38 +509,70 @@ async function loadAll() {
     document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
     pill(document.getElementById('maintainPill'), maintainSt);
 
-    // 資產配置
-    const ibTWD   = ibNet ? ibNet * fx : 0;
-    const bondTWD = bondVal * fx;
-    const totalTWD = bondTWD + twTotal + ibTWD * 0.22; // 美股約22%
-    const tt = bondTWD + twTotal + usTotal * fx;
-
-    // 用实际数据
-    const twFundV = twTotal * 0.68; // 台股基金占台股约68%
-    const twETFV  = twTotal * 0.32;
-    const usV     = usTotal * fx;
+    // 資產配置（全部换算成 TWD）
+    // 债券 $275,668 USD → TWD
+    const bondTWD  = bondVal * fx;           // ~NT$8,770,944
+    // 台股基金（統一奔騰+統一黑馬+安聯科技+安聯大壩）row30~33
+    const twFundV  = [30,31,32,33].reduce((s,i) => s + (num(total[i]?.[1])||0), 0);
+    // 台股ETF（row23~29）
+    const twETFV   = [23,24,25,26,27,28,29].reduce((s,i) => s + (num(total[i]?.[1])||0), 0);
+    // 美股 USD → TWD
+    const usV      = usTotal * fx;
     const grandTotal = bondTWD + twFundV + twETFV + usV;
 
-    setBar('bar-bond', 'pct-bond', bondTWD / grandTotal);
-    setBar('bar-tw',   'pct-tw',   twFundV / grandTotal);
-    setBar('bar-etf',  'pct-etf',  twETFV  / grandTotal);
-    setBar('bar-us',   'pct-us',   usV     / grandTotal);
+    setBar('bar-bond', 'pct-bond', bondTWD  / grandTotal);
+    setBar('bar-tw',   'pct-tw',   twFundV  / grandTotal);
+    setBar('bar-etf',  'pct-etf',  twETFV   / grandTotal);
+    setBar('bar-us',   'pct-us',   usV      / grandTotal);
 
     document.getElementById('allocSub').textContent =
       `總估算市值 NT$${fmt(grandTotal)}　股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
 
-    // 美股表格
-    let html = '';
+    // 美股表格（row15~20）
+    let usHtml = '';
     stocks.forEach(s => {
-      html += `<tr>
+      usHtml += `<tr>
         <td style="color:var(--blue)">${s.ticker}</td>
         <td>${s.val || '--'}</td>
-        <td>${s.shares || '--'}</td>
         <td>${s.price || '--'}</td>
         <td style="color:var(--muted)">${s.pct || '--'}</td>
       </tr>`;
     });
-    document.querySelector('#stockTable tbody').innerHTML = html || '<tr><td colspan="5">無資料</td></tr>';
+    document.querySelector('#stockTable tbody').innerHTML = usHtml || '<tr><td colspan="4">無資料</td></tr>';
+
+    // 台股ETF（row23~29）
+    const etfRows = [23,24,25,26,27,28,29];
+    let etfHtml = '';
+    etfRows.forEach(i => {
+      const r = total[i];
+      if (!r || !r[0]) return;
+      const name = r[0].replace('TPE:','');
+      const val  = r[1] || '--';
+      const price = r[3] || '--';
+      const pct  = r[4] || '--';
+      if (val === '0' || val === 0) return; // 跳过市值为0的
+      etfHtml += `<tr>
+        <td style="color:var(--yellow)">${name}</td>
+        <td>${val}</td>
+        <td>${price}</td>
+        <td style="color:var(--muted)">${pct}</td>
+      </tr>`;
+    });
+    document.querySelector('#etfTable tbody').innerHTML = etfHtml || '<tr><td colspan="4">無資料</td></tr>';
+
+    // 台股基金（row30~33）
+    const fundRows = [30,31,32,33];
+    let fundHtml = '';
+    fundRows.forEach(i => {
+      const r = total[i];
+      if (!r || !r[0]) return;
+      fundHtml += `<tr>
+        <td style="color:var(--accent)">${r[0]}</td>
+        <td>${r[1] || '--'}</td>
+        <td style="color:var(--muted)">${r[4] || '--'}</td>
+      </tr>`;
+    });
+    document.querySelector('#fundTable tbody').innerHTML = fundHtml || '<tr><td colspan="3">無資料</td></tr>';
 
     // 槓桿細項
     document.getElementById('pledgeR').textContent = pledgeR ? (pledgeR*100).toFixed(0)+'%' : '--';
