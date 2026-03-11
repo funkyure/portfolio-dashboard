@@ -214,7 +214,7 @@
 
   <!-- 2. YTD 報酬 -->
   <div class="card c4">
-    <div class="label">2025 YTD 報酬（累計）</div>
+    <div class="label">2026 YTD 報酬（累計）</div>
     <div class="med-val pos" id="ytdVal">--</div>
     <div class="sub-text">
       達成率 <span id="ytdRate" style="color:var(--green)">--</span>（目標 <span id="ytdTarget">--</span>）
@@ -223,7 +223,7 @@
       <div class="contrib-row"><span>IBKR</span><span id="c-ibkr" class="pos">--</span></div>
       <div class="contrib-row"><span>台股基金</span><span id="c-tw" class="pos">--</span></div>
       <div class="contrib-row"><span>ETF</span><span id="c-etf" class="pos">--</span></div>
-      <div class="contrib-row"><span>2026 YTD</span><span id="c-26" class="pos">--</span></div>
+      <div class="contrib-row"><span>2025 全年</span><span id="c-26" class="pos">--</span></div>
     </div>
   </div>
 
@@ -447,26 +447,7 @@ async function loadAll() {
     // 汇率 row13 col3
     const fx = num(total[13][3]) || 31.817;
 
-    // 美股部位：row15~20（AAPU, GGLL, MSFU, UNHG, QLD, USD）
-    const stocks = [];
-    for (let i = 15; i <= 20; i++) {
-      const t = total[i];
-      if (!t || !t[0]) continue;
-      stocks.push({ ticker: t[0], val: t[1], shares: t[2], price: t[3], pct: t[4] });
-    }
-
-    // 美股小計 row21 col1 = $58,275 USD
-    const usTotal = num(total[21][1]) || 0;
-    // 台股小計 row34 col1 = NT$6,679,406
-    const twTotal = num(total[34][1]) || 0;
-    // 債券市值 row14 col7 = $275,668 USD
-    const bondVal = num(total[14][7]) || 0;
-
-    console.log('bondVal:', bondVal, 'twTotal:', twTotal, 'usTotal:', usTotal, 'fx:', fx);
-
     // ── 資產變化解析 ──
-    // row0=header, row1=2024, row2=2025, row3=2026
-    const ytd25   = num(total[29]?.[0]) || num(yearChg[2][6]);
     const ytd25v  = num(yearChg[2][6]);
     const tgt25   = num(yearChg[2][9]);
     const rate25  = pctNum(yearChg[2][10]);
@@ -491,16 +472,16 @@ async function loadAll() {
 
     // YTD
     const ytdEl = document.getElementById('ytdVal');
-    ytdEl.textContent = ytd25v ? fmtSign(ytd25v) : '--';
-    ytdEl.className = 'med-val ' + (ytd25v >= 0 ? 'pos' : 'neg');
-    document.getElementById('ytdRate').textContent = rate25 ? (rate25*100).toFixed(0)+'%' : '--';
+    ytdEl.textContent = ytd26 ? fmtSign(ytd26) : '--';
+    ytdEl.className = 'med-val ' + (ytd26 >= 0 ? 'pos' : 'neg');
+    document.getElementById('ytdRate').textContent = ytd26 && tgt25 ? (ytd26/tgt25*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTarget').textContent = tgt25 ? fmt(tgt25) : '--';
     document.getElementById('c-ibkr').textContent = ibkr25 ? fmtSign(ibkr25) : '--';
     document.getElementById('c-ibkr').className = ibkr25 >= 0 ? 'pos' : 'neg';
     document.getElementById('c-tw').textContent = tw25 ? fmtSign(tw25) : '--';
     document.getElementById('c-etf').textContent = etf25 ? fmtSign(etf25) : '--';
-    document.getElementById('c-26').textContent = ytd26 ? fmtSign(ytd26) : '--';
-    document.getElementById('c-26').className = ytd26 >= 0 ? 'pos' : 'neg';
+    document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
+    document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
 
     // 槓桿
     document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
