@@ -86,6 +86,7 @@
     text-transform: uppercase;
     margin-bottom: 8px;
   }
+  .contrib-col { display: flex; flex-direction: column; min-width: 180px; }
   .big-val {
     font-family: 'DM Serif Display', serif;
     font-size: 2.4rem;
@@ -198,40 +199,76 @@
 
 <div class="grid">
 
-  <!-- 1. IB 淨值 -->
-  <div class="card c5">
+  <!-- 1. YTD 報酬（置頂全寬） -->
+  <div class="card c12">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div class="label">2026 YTD 報酬（累計）</div>
+        <div class="big-val pos" id="ytdVal">--</div>
+        <div class="sub-text">
+          達成率 <span id="ytdRate" style="color:var(--green)">--</span>（目標 <span id="ytdTarget">--</span>）
+        </div>
+      </div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start; margin-top:4px;">
+        <div class="contrib-col">
+          <div class="contrib-row"><span>IBKR</span><span id="c-ibkr" class="pos">--</span></div>
+          <div class="contrib-row"><span>台股基金</span><span id="c-tw" class="pos">--</span></div>
+          <div class="contrib-row"><span>ETF</span><span id="c-etf" class="pos">--</span></div>
+          <div class="contrib-row"><span>2025 全年</span><span id="c-26" class="pos">--</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. IB 投組 -->
+  <div class="card c6">
     <div class="label">IB 投組淨值</div>
     <div class="big-val" id="ibNet">--</div>
-    <div class="sub-text">
-      槓桿 <span id="ibLev">--</span> &nbsp;·&nbsp; 台灣質借 <span id="twPledge">--</span>
-    </div>
+    <div class="sub-text">IB 槓桿 <span id="ibLev">--</span></div>
     <div id="levPill" class="pill pill-green" style="margin-top:10px;"><span class="dot dot-g"></span>讀取中</div>
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">槓桿比率（美）</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="levVal">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);" id="levSub">目標 >40%</div>
+      </div>
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">股票佔比（美）</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="stockR">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);">目標 >30%</div>
+      </div>
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">股票佔比（美+台）含槓桿</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="stockTwR">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);">目標 >50%</div>
+      </div>
+    </div>
   </div>
 
-  <!-- 2. YTD 報酬 -->
-  <div class="card c4">
-    <div class="label">2026 YTD 報酬（累計）</div>
-    <div class="med-val pos" id="ytdVal">--</div>
-    <div class="sub-text">
-      達成率 <span id="ytdRate" style="color:var(--green)">--</span>（目標 <span id="ytdTarget">--</span>）
-    </div>
-    <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
-      <div class="contrib-row"><span>IBKR</span><span id="c-ibkr" class="pos">--</span></div>
-      <div class="contrib-row"><span>台股基金</span><span id="c-tw" class="pos">--</span></div>
-      <div class="contrib-row"><span>ETF</span><span id="c-etf" class="pos">--</span></div>
-      <div class="contrib-row"><span>2025 全年</span><span id="c-26" class="pos">--</span></div>
-    </div>
-  </div>
-
-  <!-- 3. 槓桿警示 -->
-  <div class="card c3">
-    <div class="label">槓桿比率（美）</div>
-    <div class="med-val" id="levVal">--</div>
-    <div class="sub-text" id="levSub">目標 >40%</div>
-    <div style="margin-top:14px;">
-      <div style="font-size:0.6rem; color:var(--muted); margin-bottom:6px; letter-spacing:0.1em; text-transform:uppercase;">質借維持率</div>
-      <div style="font-size:1.3rem; font-weight:500;" id="maintainVal">--</div>
-      <div id="maintainPill" class="pill pill-green"><span class="dot dot-g"></span>讀取中</div>
+  <!-- 3. 台灣質借 -->
+  <div class="card c6">
+    <div class="label">台灣質借</div>
+    <div class="big-val" id="twPledge">--</div>
+    <div id="pledgePillTop" class="pill pill-green" style="margin-top:10px;"><span class="dot dot-g"></span>讀取中</div>
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借比率</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="pledgeR">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);">目標 40%</div>
+        <div id="pledgePill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+      </div>
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借比率（含基金）</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="pledgeFR">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);">目標 20%</div>
+        <div id="pledgeFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+      </div>
+      <div>
+        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借維持率</div>
+        <div style="font-size:1.15rem; font-weight:500;" id="maintainVal">--</div>
+        <div style="font-size:0.6rem; color:var(--muted);">>250%</div>
+        <div id="maintainPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+      </div>
     </div>
   </div>
 
@@ -290,36 +327,6 @@
     </table>
   </div>
 
-  <!-- 6. 槓桿細項 -->
-  <div class="card c12">
-    <div class="label">槓桿 &amp; 質借細項</div>
-    <div class="lev-grid">
-      <div class="lev-item">
-        <div class="label">質借比率</div>
-        <div class="val" id="pledgeR">--</div>
-        <div class="tgt">目標 40%</div>
-        <div id="pledgePill" class="pill pill-green"><span class="dot dot-g"></span>--</div>
-      </div>
-      <div class="lev-item">
-        <div class="label">質借比率（含基金）</div>
-        <div class="val" id="pledgeFR">--</div>
-        <div class="tgt">目標 20%</div>
-        <div id="pledgeFPill" class="pill pill-green"><span class="dot dot-g"></span>--</div>
-      </div>
-      <div class="lev-item">
-        <div class="label">股票佔比（美）</div>
-        <div class="val" id="stockR">--</div>
-        <div class="tgt">目標 >30%</div>
-        <div id="stockPill" class="pill pill-green"><span class="dot dot-g"></span>--</div>
-      </div>
-      <div class="lev-item">
-        <div class="label">股票佔比（美+台）含槓桿</div>
-        <div class="val" id="stockTwR">--</div>
-        <div class="tgt">目標 >50%</div>
-        <div id="stockTwPill" class="pill pill-green"><span class="dot dot-g"></span>--</div>
-      </div>
-    </div>
-  </div>
 
 </div>
 
@@ -478,12 +485,14 @@ async function loadAll() {
     document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
     document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
 
-    // 槓桿
+    // 槓桿 & 質借
     document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
     document.getElementById('levVal').style.color = levSt === '過高' ? 'var(--red)' : levSt === '正常' ? 'var(--green)' : 'var(--yellow)';
-    document.getElementById('levSub').textContent = '目標 >40%　狀態：' + (levSt || '--');
+    document.getElementById('levSub').textContent = '目標 >40%　' + (levSt || '--');
+    pill(document.getElementById('levPill'), levSt);
     document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
     pill(document.getElementById('maintainPill'), maintainSt);
+    pill(document.getElementById('pledgePillTop'), pledgeSt);
 
     // 動態掃描，不依賴固定行號
     let bondUSD = 0, bondTWD = 0;
@@ -564,7 +573,7 @@ async function loadAll() {
 
     document.getElementById('allocSub').innerHTML =
       `總資產(含槓桿) <strong style="color:var(--text)">NT$${fmt(grandTotal)}</strong> &nbsp;·&nbsp; 淨資產 <strong style="color:var(--green)">NT$${fmt(netAsset)}</strong><br>` +
-      `債券 NT$${fmt(bondTWD)} &nbsp;·&nbsp; 美股 NT$${fmt(usStockTWD)} &nbsp;·&nbsp; 股票佔比 ${stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'}`;
+      `債券 NT$${fmt(bondTWD)} &nbsp;·&nbsp; 台股基金 NT$${fmt(twFundV)} &nbsp;·&nbsp; 台股ETF NT$${fmt(twETFV)} &nbsp;·&nbsp; 美股 NT$${fmt(usStockTWD)}`;
 
     // 美股表格
     let usHtml = stocks.map(s => `<tr>
