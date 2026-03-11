@@ -86,6 +86,9 @@
     text-transform: uppercase;
     margin-bottom: 8px;
   }
+  .mini-label { font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
+  .mini-val   { font-size:1.15rem; font-weight:500; }
+  .mini-tgt   { font-size:0.6rem; color:var(--muted); }
   .contrib-col { display: flex; flex-direction: column; min-width: 180px; }
   .big-val {
     font-family: 'DM Serif Display', serif;
@@ -221,53 +224,69 @@
   </div>
 
   <!-- 2. IB 投組 -->
-  <div class="card c6">
+  <div class="card c4">
     <div class="label">IB 投組淨值</div>
     <div class="big-val" id="ibNet">--</div>
     <div class="sub-text">IB 槓桿 <span id="ibLev">--</span></div>
     <div id="levPill" class="pill pill-green" style="margin-top:10px;"><span class="dot dot-g"></span>讀取中</div>
     <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">槓桿比率（美）</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="levVal">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);" id="levSub">目標 >40%</div>
+        <div class="mini-label">槓桿比率（美）</div>
+        <div class="mini-val" id="levVal">--</div>
+        <div class="mini-tgt" id="levSub">目標 &gt;40%</div>
       </div>
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">股票佔比（美）</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="stockR">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);">目標 >30%</div>
+        <div class="mini-label">股票佔比（美）</div>
+        <div class="mini-val" id="stockR">--</div>
+        <div class="mini-tgt">目標 &gt;30%</div>
       </div>
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">股票佔比（美+台）含槓桿</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="stockTwR">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);">目標 >50%</div>
+        <div class="mini-label">股票佔比（美+台）</div>
+        <div class="mini-val" id="stockTwR">--</div>
+        <div class="mini-tgt">目標 &gt;50%</div>
       </div>
     </div>
   </div>
 
-  <!-- 3. 台灣質借 -->
-  <div class="card c6">
-    <div class="label">台灣質借</div>
-    <div class="big-val" id="twPledge">--</div>
+  <!-- 3. 台灣ETF -->
+  <div class="card c4">
+    <div class="label">台灣 ETF 市值</div>
+    <div class="big-val" id="twETFVal">--</div>
+    <div class="sub-text">台灣質借 <span id="twPledge">--</span></div>
     <div id="pledgePillTop" class="pill pill-green" style="margin-top:10px;"><span class="dot dot-g"></span>讀取中</div>
     <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借比率</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="pledgeR">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);">目標 40%</div>
-        <div id="pledgePill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+        <div class="mini-label">質借比率</div>
+        <div class="mini-val" id="pledgeR">--</div>
+        <div class="mini-tgt">目標 40%</div>
+        <div id="pledgePill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借比率（含基金）</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="pledgeFR">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);">目標 20%</div>
-        <div id="pledgeFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+        <div class="mini-label">質借維持率</div>
+        <div class="mini-val" id="maintainVal">--</div>
+        <div class="mini-tgt">&gt;250%</div>
+        <div id="maintainPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 台灣基金 -->
+  <div class="card c4">
+    <div class="label">台灣基金淨值</div>
+    <div class="big-val" id="twFundVal">--</div>
+    <div class="sub-text">&nbsp;</div>
+    <div style="margin-top:24px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:24px; flex-wrap:wrap;">
+      <div>
+        <div class="mini-label">質借比率（含基金）</div>
+        <div class="mini-val" id="pledgeFR">--</div>
+        <div class="mini-tgt">目標 20%</div>
+        <div id="pledgeFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
-        <div style="font-size:0.6rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px;">質借維持率</div>
-        <div style="font-size:1.15rem; font-weight:500;" id="maintainVal">--</div>
-        <div style="font-size:0.6rem; color:var(--muted);">>250%</div>
-        <div id="maintainPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>讀取中</div>
+        <div class="mini-label">維持率（含基金）</div>
+        <div class="mini-val" id="maintainFVal">--</div>
+        <div class="mini-tgt">&gt;500%</div>
+        <div id="maintainFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
   </div>
@@ -466,11 +485,29 @@ async function loadAll() {
     document.getElementById('updateTime').textContent =
       `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
 
-    // IB 净值
+    // IB 投組
     document.getElementById('ibNet').textContent = ibNet ? 'USD '+fmt(ibNet) : '--';
     document.getElementById('ibLev').textContent = ibLev ? fmt(Math.abs(ibLev)) : '--';
-    document.getElementById('twPledge').textContent = twPledge ? 'NT$'+fmt(twPledge) : '--';
     pill(document.getElementById('levPill'), levSt);
+
+    // 台灣ETF市值
+    const twETFValEl = document.getElementById('twETFVal');
+    if (twETFValEl) twETFValEl.textContent = twETFV ? 'NT$'+fmt(twETFV) : '--';
+    document.getElementById('twPledge').textContent = twPledge ? 'NT$'+fmt(twPledge) : '--';
+    pill(document.getElementById('pledgePillTop'), pledgeSt);
+
+    // 台灣基金市值
+    const twFundValEl = document.getElementById('twFundVal');
+    if (twFundValEl) twFundValEl.textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
+
+    // 含基金維持率 row6
+    const maintainFR  = pctNum(total[6][1]);
+    const maintainFSt = (total[6][3]||'').trim();
+    const maintainFEl = document.getElementById('maintainFVal');
+    if (maintainFEl) {
+      maintainFEl.textContent = maintainFR ? (maintainFR*100).toFixed(0)+'%' : '--';
+    }
+    pill(document.getElementById('maintainFPill'), maintainFSt);
 
     // YTD
     const ytdEl = document.getElementById('ytdVal');
