@@ -579,9 +579,6 @@ async function loadAll() {
     const ibLevTWD   = Math.abs(ibLev) * fx;
     const netAsset   = grandTotal - ibLevTWD - twPledge;
 
-    const maintainFR  = pctNum(total[6][1]);
-    const maintainFSt = (total[6][3]||'').trim();
-
     // ── 更新 UI ──
     document.getElementById('fxRate').textContent = fx.toFixed(3);
     const now = new Date();
