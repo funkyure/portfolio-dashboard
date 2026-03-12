@@ -491,9 +491,7 @@ async function loadAll() {
       if (a === '美股') { section = 'us'; continue; }
       if (a === '台股ETF/基金') { section = 'tw'; continue; }
 
-      // 債券市值
-      if (r[6] === '債券市值') bondUSD = num(r[7]);
-      if (bondUSD && !bondTWD && (r[7]||'').includes('NT$')) bondTWD = num(r[7]);
+      // 債券市值（跳過，用固定行讀取）
 
       // 美股小計
       if (section === 'us' && a === '小計') { usTotal = num(r[1]); section = ''; continue; }
@@ -519,9 +517,9 @@ async function loadAll() {
       }
     }
 
-    // 備援
-    if (!bondUSD) bondUSD = num(total[14]?.[7]);
-    if (!bondTWD) bondTWD = num(total[15]?.[7]);
+    // 債券固定行：H15=row14 col7 (USD), H16=row15 col7 (TWD)
+    bondUSD = num(total[14]?.[7]);
+    bondTWD = num(total[15]?.[7]);
     if (!usTotal) usTotal = num(total[21]?.[1]);
 
     // ── 計算 ──
