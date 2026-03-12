@@ -466,8 +466,8 @@ async function loadAll() {
     const stockTwR   = pctNum(total[11][1]); // 60%
     const stockTwSt  = (total[11][3]||'').trim();  // 過高
 
-    // 汇率 row13 col3
-    const fx = num(total[13][3]) || 31.817;
+    // 汇率 row12 col3
+    const fx = num(total[12][3]) || 31.817;
 
     // ── 資產變化解析（2026 row3, 2025 row2）──
     const ytd25v  = num(yearChg[2][6]);   // 2025全年總金額
@@ -517,23 +517,13 @@ async function loadAll() {
       }
     }
 
-    // 債券固定行：H15=row14 col7 (USD), H16=row15 col7 (TWD)
-    bondUSD = num(total[14]?.[7]);
-    bondTWD = num(total[15]?.[7]);
-    if (!usTotal) usTotal = num(total[21]?.[1]);
+    // 債券固定行：row12 col6 (USD), row13 col6 (TWD)
+    bondUSD = num(total[12]?.[6]);
+    bondTWD = num(total[13]?.[6]);
+    // 美股小計：掃描找小計行
+    if (!usTotal) usTotal = num(total[20]?.[1]);
 
-    // DEBUG
-    console.log('=== 債券 DEBUG ===');
-    console.log('row14:', JSON.stringify(total[14]));
-    console.log('row15:', JSON.stringify(total[15]));
-    console.log('row16:', JSON.stringify(total[16]));
-    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD);
-    // 掃描全部row找債券市值
-    for (let i=0; i<total.length; i++) {
-      if ((total[i]||[]).some(c => c && c.includes('債券市值'))) {
-        console.log('債券市值在 row', i, ':', JSON.stringify(total[i]));
-      }
-    }
+    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
 
     // ── 計算 ──
     const usStockTWD = usTotal * fx;
@@ -541,7 +531,6 @@ async function loadAll() {
     const ibLevTWD   = Math.abs(ibLev) * fx;
     const netAsset   = grandTotal - ibLevTWD - twPledge;
 
-    // 含基金維持率 row6
     const maintainFR  = pctNum(total[6][1]);
     const maintainFSt = (total[6][3]||'').trim();
 
