@@ -455,24 +455,31 @@ async function loadAll() {
     const twPledge = num(total[2][1]);
 
     const pledgeR    = pctNum(total[3][1]);
-    const pledgeSt   = (total[3][3]||'').trim();
     const pledgeFR   = pctNum(total[4][1]);
-    const pledgeFSt  = (total[4][3]||'').trim();
     const maintainR  = pctNum(total[5][1]);
-    const maintainSt = (total[5][3]||'').trim();
     const levR       = pctNum(total[7][1]);
-    const levSt      = (total[7][3]||'').trim();
     const stockR     = pctNum(total[9][1]);
-    const stockSt    = (total[9][3]||'').trim();
     const stockTwR   = pctNum(total[11][1]);
-    const stockTwSt  = (total[11][3]||'').trim();
 
-    console.log('狀態debug:', {
-      pledgeSt, pledgeFSt, maintainSt, levSt, stockSt, stockTwSt,
-      row3: total[3],
-      row5: total[5],
-      row7: total[7],
-    });
+    // 掃描整行找狀態文字（不依賴固定col）
+    const statusWords = ['正常','過高','過低','警示'];
+    function findStatus(row) {
+      if (!row) return '';
+      for (let j = 0; j < row.length; j++) {
+        const v = (row[j]||'').trim();
+        if (statusWords.includes(v)) return v;
+      }
+      return '';
+    }
+    const pledgeSt   = findStatus(total[3]);
+    const pledgeFSt  = findStatus(total[4]);
+    const maintainSt = findStatus(total[5]);
+    const levSt      = findStatus(total[7]);
+    const stockSt    = findStatus(total[9]);
+    const stockTwSt  = findStatus(total[11]);
+
+    console.log('狀態:', { pledgeSt, pledgeFSt, maintainSt, levSt });
+    console.log('row3:', JSON.stringify(total[3]));
 
     // 汇率 row12 col3
     const fx = num(total[12][3]) || 31.817;
@@ -525,29 +532,34 @@ async function loadAll() {
       }
     }
 
-    // 債券：H15=row14 col7 (USD), H16=row15 col7 (TWD)
-    bondUSD = num(total[14]?.[7]);
-    bondTWD = num(total[15]?.[7]);
-
-    // 備援：掃描找最大的TWD數字（債券約NT$8-9M）
+    // 債券：動態找含「債券市值」的行
+    for (let i = 10; i < 25; i++) {
+      const r = total[i] || [];
+      for (let j = 0; j < r.length; j++) {
+        if ((r[j]||'').trim() === '債券市值') {
+          // USD在同行j+1，TWD在下一行j+1
+          bondUSD = num(r[j+1]);
+          bondTWD = num((total[i+1]||[])[j+1]);
+          break;
+        }
+      }
+      if (bondUSD || bondTWD) break;
+    }
+    // 備援：TWD用備援掃描（找NT$8M-12M範圍）
     if (!bondTWD) {
-      for (let i = 0; i < 25; i++) {
-        const r = total[i] || [];
-        for (let j = 0; j < r.length; j++) {
-          const v = num(r[j]);
-          if (v && v > 7000000 && v < 15000000) {
-            bondTWD = v;
-            if (!bondUSD) bondUSD = num((total[i-1]||[])[j]);
+      for (let i = 10; i < 25; i++) {
+        for (let j = 5; j < 12; j++) {
+          const raw = (total[i]||[])[j] || '';
+          if (raw.includes('NT$') && num(raw) > 7000000) {
+            bondTWD = num(raw);
             break;
           }
         }
         if (bondTWD) break;
       }
     }
-
     if (!usTotal) usTotal = num(total[20]?.[1]) || num(total[21]?.[1]);
-    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal,
-      'raw14_7:', total[14]?.[7], 'raw15_7:', total[15]?.[7]);
+    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
 
     // ── 計算 ──
     const usStockTWD = usTotal * fx;
