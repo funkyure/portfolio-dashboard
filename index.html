@@ -377,10 +377,11 @@ async function fetchCSV(sheet) {
   });
 }
 
-// 解析数值（去掉货币符号、逗号、%）
+// 解析数值（去掉货币符号、逗号、%、引号、空白）
 function num(s) {
   if (!s) return null;
-  const n = parseFloat(s.replace(/[^0-9.\-]/g,''));
+  const cleaned = String(s).replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(cleaned);
   return isNaN(n) ? null : n;
 }
 function pctNum(s) {
@@ -517,13 +518,29 @@ async function loadAll() {
       }
     }
 
-    // 債券固定行：row12 col6 (USD), row13 col6 (TWD)
-    bondUSD = num(total[12]?.[6]);
-    bondTWD = num(total[13]?.[6]);
-    // 美股小計：掃描找小計行
-    if (!usTotal) usTotal = num(total[20]?.[1]);
+    // 債券：H15=row14 col7 (USD), H16=row15 col7 (TWD)
+    bondUSD = num(total[14]?.[7]);
+    bondTWD = num(total[15]?.[7]);
 
-    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
+    // 備援：掃描找最大的TWD數字（債券約NT$8-9M）
+    if (!bondTWD) {
+      for (let i = 0; i < 25; i++) {
+        const r = total[i] || [];
+        for (let j = 0; j < r.length; j++) {
+          const v = num(r[j]);
+          if (v && v > 7000000 && v < 15000000) {
+            bondTWD = v;
+            if (!bondUSD) bondUSD = num((total[i-1]||[])[j]);
+            break;
+          }
+        }
+        if (bondTWD) break;
+      }
+    }
+
+    if (!usTotal) usTotal = num(total[20]?.[1]) || num(total[21]?.[1]);
+    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal,
+      'raw14_7:', total[14]?.[7], 'raw15_7:', total[15]?.[7]);
 
     // ── 計算 ──
     const usStockTWD = usTotal * fx;
