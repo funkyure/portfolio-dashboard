@@ -477,105 +477,35 @@ async function loadAll() {
     const etf26   = num(yearChg[3][3]);   // 2026 ETF
     const ytd26   = num(yearChg[3][6]);   // 2026 總金額
 
-    // ── 更新 UI ──
-
-    // 汇率 & 时间
-    document.getElementById('fxRate').textContent = fx.toFixed(3);
-    const now = new Date();
-    document.getElementById('updateTime').textContent =
-      `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
-
-    // IB 投組
-    document.getElementById('ibNet').textContent = ibNet ? 'USD '+fmt(ibNet) : '--';
-    document.getElementById('ibLev').textContent = ibLev ? fmt(Math.abs(ibLev)) : '--';
-    pill(document.getElementById('levPill'), levSt);
-
-    // 台灣ETF市值
-    const twETFValEl = document.getElementById('twETFVal');
-    if (twETFValEl) twETFValEl.textContent = twETFV ? 'NT$'+fmt(twETFV) : '--';
-    document.getElementById('twPledge').textContent = twPledge ? 'NT$'+fmt(twPledge) : '--';
-    pill(document.getElementById('pledgePillTop'), pledgeSt);
-
-    // 台灣基金市值
-    const twFundValEl = document.getElementById('twFundVal');
-    if (twFundValEl) twFundValEl.textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
-
-    // 含基金維持率 row6
-    const maintainFR  = pctNum(total[6][1]);
-    const maintainFSt = (total[6][3]||'').trim();
-    const maintainFEl = document.getElementById('maintainFVal');
-    if (maintainFEl) {
-      maintainFEl.textContent = maintainFR ? (maintainFR*100).toFixed(0)+'%' : '--';
-    }
-    pill(document.getElementById('maintainFPill'), maintainFSt);
-
-    // YTD
-    const ytdEl = document.getElementById('ytdVal');
-    ytdEl.textContent = ytd26 ? fmtSign(ytd26) : '--';
-    ytdEl.className = 'med-val ' + (ytd26 >= 0 ? 'pos' : 'neg');
-    document.getElementById('ytdRate').textContent = ytd26 && tgt25 ? (ytd26/tgt25*100).toFixed(0)+'%' : '--';
-    document.getElementById('ytdTarget').textContent = tgt25 ? fmt(tgt25) : '--';
-    document.getElementById('c-ibkr').textContent = ibkr26 ? fmtSign(ibkr26) : '--';
-    document.getElementById('c-ibkr').className = ibkr26 >= 0 ? 'pos' : 'neg';
-    document.getElementById('c-tw').textContent = tw26 ? fmtSign(tw26) : '--';
-    document.getElementById('c-etf').textContent = etf26 ? fmtSign(etf26) : '--';
-    document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
-    document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
-
-    // 槓桿 & 質借
-    document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
-    document.getElementById('levVal').style.color = levSt === '過高' ? 'var(--red)' : levSt === '正常' ? 'var(--green)' : 'var(--yellow)';
-    document.getElementById('levSub').textContent = '目標 >40%　' + (levSt || '--');
-    pill(document.getElementById('levPill'), levSt);
-    document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
-    pill(document.getElementById('maintainPill'), maintainSt);
-    pill(document.getElementById('pledgePillTop'), pledgeSt);
-
-    // 動態掃描，不依賴固定行號
-    let bondUSD = 0, bondTWD = 0;
-    let usTotal = 0;
+    // ── 動態掃描（必須在UI更新之前）──
+    let bondUSD = 0, bondTWD = 0, usTotal = 0;
     let twETFV = 0, twFundV = 0;
     const stocks = [], etfList = [], fundList = [];
+    let section = '';
 
-    let section = ''; // 目前在哪個區塊
     for (let i = 0; i < total.length; i++) {
       const r = total[i];
       if (!r || !r[0]) continue;
       const a = r[0].trim();
 
-      // 偵測區塊
       if (a === '美股') { section = 'us'; continue; }
       if (a === '台股ETF/基金') { section = 'tw'; continue; }
 
-      // 債券市值（H15/H16）
-      if (a === '美股' && r[6] === '債券部位') continue;
-      if (r[6] === '債券市值' || (i === 14 && r[7]?.includes('$'))) {
-        bondUSD = num(r[7]);
-      }
-      if (bondUSD && !bondTWD && r[7]?.includes('NT$')) {
-        bondTWD = num(r[7]);
-      }
+      // 債券市值
+      if (r[6] === '債券市值') bondUSD = num(r[7]);
+      if (bondUSD && !bondTWD && (r[7]||'').includes('NT$')) bondTWD = num(r[7]);
 
       // 美股小計
-      if (section === 'us' && a === '小計') {
-        usTotal = num(r[1]);
-        section = '';
-        continue;
-      }
-
+      if (section === 'us' && a === '小計') { usTotal = num(r[1]); section = ''; continue; }
       // 台股小計
-      if (section === 'tw' && a === '小計') {
-        // 不用，直接加總
-        section = '';
-        continue;
-      }
+      if (section === 'tw' && a === '小計') { section = ''; continue; }
 
       // 美股個股
       if (section === 'us' && num(r[1]) && !a.startsWith('TPE:')) {
-        stocks.push({ ticker: a, val: r[1], shares: r[2], price: r[3], pct: r[4] });
+        stocks.push({ ticker: a, val: r[1], price: r[3], pct: r[4] });
       }
 
-      // 台股（ETF or 基金）
+      // 台股ETF / 基金
       if (section === 'tw') {
         const v = num(r[1]);
         if (!v || !a) continue;
@@ -589,72 +519,97 @@ async function loadAll() {
       }
     }
 
-    // 備援：如果動態掃描沒抓到債券，用固定行
+    // 備援
     if (!bondUSD) bondUSD = num(total[14]?.[7]);
     if (!bondTWD) bondTWD = num(total[15]?.[7]);
     if (!usTotal) usTotal = num(total[21]?.[1]);
 
+    // ── 計算 ──
     const usStockTWD = usTotal * fx;
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
-    // 淨資產 = 總資產 - IB槓桿(TWD) - 台灣質借(TWD)
     const ibLevTWD   = Math.abs(ibLev) * fx;
     const netAsset   = grandTotal - ibLevTWD - twPledge;
 
-    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD, 'usTotal:', usTotal);
-    console.log('twETFV:', twETFV, 'twFundV:', twFundV, 'grandTotal:', grandTotal);
+    // 含基金維持率 row6
+    const maintainFR  = pctNum(total[6][1]);
+    const maintainFSt = (total[6][3]||'').trim();
 
+    // ── 更新 UI ──
+    document.getElementById('fxRate').textContent = fx.toFixed(3);
+    const now = new Date();
+    document.getElementById('updateTime').textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
+
+    // IB 投組
+    document.getElementById('ibNet').textContent = ibNet ? 'USD '+fmt(ibNet) : '--';
+    document.getElementById('ibLev').textContent = ibLev ? fmt(Math.abs(ibLev)) : '--';
+    pill(document.getElementById('levPill'), levSt);
+    document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
+    document.getElementById('levVal').style.color = levSt === '過高' ? 'var(--red)' : levSt === '正常' ? 'var(--green)' : 'var(--yellow)';
+    document.getElementById('levSub').textContent = '目標 >40%　' + (levSt || '--');
+    const stockREl = document.getElementById('stockR');
+    if (stockREl) { stockREl.textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--'; stockREl.style.color = stockSt === '過高' ? 'var(--red)' : stockSt === '正常' ? 'var(--green)' : 'var(--yellow)'; }
+    const stockTwREl = document.getElementById('stockTwR');
+    if (stockTwREl) { stockTwREl.textContent = stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'; stockTwREl.style.color = stockTwSt === '過高' ? 'var(--red)' : stockTwSt === '正常' ? 'var(--green)' : 'var(--yellow)'; }
+
+    // 台灣ETF
+    const twETFValEl = document.getElementById('twETFVal');
+    if (twETFValEl) twETFValEl.textContent = twETFV ? 'NT$'+fmt(twETFV) : '--';
+    document.getElementById('twPledge').textContent = twPledge ? 'NT$'+fmt(twPledge) : '--';
+    pill(document.getElementById('pledgePillTop'), pledgeSt);
+    document.getElementById('pledgeR').textContent = pledgeR ? (pledgeR*100).toFixed(0)+'%' : '--';
+    pill(document.getElementById('pledgePill'), pledgeSt);
+    document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
+    pill(document.getElementById('maintainPill'), maintainSt);
+
+    // 台灣基金
+    const twFundValEl = document.getElementById('twFundVal');
+    if (twFundValEl) twFundValEl.textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
+    document.getElementById('pledgeFR').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
+    pill(document.getElementById('pledgeFPill'), pledgeFSt);
+    const maintainFEl = document.getElementById('maintainFVal');
+    if (maintainFEl) maintainFEl.textContent = maintainFR ? (maintainFR*100).toFixed(0)+'%' : '--';
+    pill(document.getElementById('maintainFPill'), maintainFSt);
+
+    // YTD
+    const ytdEl = document.getElementById('ytdVal');
+    ytdEl.textContent = ytd26 ? fmtSign(ytd26) : '--';
+    ytdEl.className = 'big-val ' + (ytd26 >= 0 ? 'pos' : 'neg');
+    document.getElementById('ytdRate').textContent = ytd26 && tgt25 ? (ytd26/tgt25*100).toFixed(0)+'%' : '--';
+    document.getElementById('ytdTarget').textContent = tgt25 ? fmt(tgt25) : '--';
+    document.getElementById('c-ibkr').textContent = ibkr26 ? fmtSign(ibkr26) : '--';
+    document.getElementById('c-ibkr').className = ibkr26 >= 0 ? 'pos' : 'neg';
+    document.getElementById('c-tw').textContent = tw26 ? fmtSign(tw26) : '--';
+    document.getElementById('c-etf').textContent = etf26 ? fmtSign(etf26) : '--';
+    document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
+    document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
+
+    // 資產配置
     setBar('bar-bond', 'pct-bond', bondTWD    / grandTotal);
     setBar('bar-tw',   'pct-tw',   twFundV    / grandTotal);
     setBar('bar-etf',  'pct-etf',  twETFV     / grandTotal);
     setBar('bar-us',   'pct-us',   usStockTWD / grandTotal);
-
     document.getElementById('allocSub').innerHTML =
       `總資產(含槓桿) <strong style="color:var(--text)">NT$${fmt(grandTotal)}</strong> &nbsp;·&nbsp; 淨資產 <strong style="color:var(--green)">NT$${fmt(netAsset)}</strong><br>` +
       `債券 NT$${fmt(bondTWD)} &nbsp;·&nbsp; 台股基金 NT$${fmt(twFundV)} &nbsp;·&nbsp; 台股ETF NT$${fmt(twETFV)} &nbsp;·&nbsp; 美股 NT$${fmt(usStockTWD)}`;
 
     // 美股表格
-    let usHtml = stocks.map(s => `<tr>
+    document.querySelector('#stockTable tbody').innerHTML = stocks.map(s => `<tr>
       <td style="color:var(--blue)">${s.ticker}</td>
-      <td>${s.val||'--'}</td>
-      <td>${s.price||'--'}</td>
-      <td style="color:var(--muted)">${s.pct||'--'}</td>
-    </tr>`).join('');
-    document.querySelector('#stockTable tbody').innerHTML = usHtml || '<tr><td colspan="4">無資料</td></tr>';
+      <td>${s.val||'--'}</td><td>${s.price||'--'}</td>
+      <td style="color:var(--muted)">${s.pct||'--'}</td></tr>`).join('') || '<tr><td colspan="4">無資料</td></tr>';
 
     // 台股ETF表格
-    let etfHtml = etfList.map(s => `<tr>
+    document.querySelector('#etfTable tbody').innerHTML = etfList.map(s => `<tr>
       <td style="color:var(--yellow)">${s.name}</td>
-      <td>${s.val||'--'}</td>
-      <td>${s.price||'--'}</td>
-      <td style="color:var(--muted)">${s.pct||'--'}</td>
-    </tr>`).join('');
-    document.querySelector('#etfTable tbody').innerHTML = etfHtml || '<tr><td colspan="4">無資料</td></tr>';
+      <td>${s.val||'--'}</td><td>${s.price||'--'}</td>
+      <td style="color:var(--muted)">${s.pct||'--'}</td></tr>`).join('') || '<tr><td colspan="4">無資料</td></tr>';
 
     // 台股基金表格
-    let fundHtml = fundList.map(s => `<tr>
+    document.querySelector('#fundTable tbody').innerHTML = fundList.map(s => `<tr>
       <td style="color:var(--accent)">${s.name}</td>
       <td>${s.val||'--'}</td>
-      <td style="color:var(--muted)">${s.pct||'--'}</td>
-    </tr>`).join('');
-    document.querySelector('#fundTable tbody').innerHTML = fundHtml || '<tr><td colspan="3">無資料</td></tr>';
-
-    // 槓桿細項
-    document.getElementById('pledgeR').textContent = pledgeR ? (pledgeR*100).toFixed(0)+'%' : '--';
-    pill(document.getElementById('pledgePill'), pledgeSt);
-
-    document.getElementById('pledgeFR').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
-    pill(document.getElementById('pledgeFPill'), pledgeFSt);
-
-    const stockREl = document.getElementById('stockR');
-    if (stockREl) {
-      stockREl.textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--';
-      stockREl.style.color = stockSt === '過高' ? 'var(--red)' : stockSt === '正常' ? 'var(--green)' : 'var(--yellow)';
-    }
-    const stockTwREl = document.getElementById('stockTwR');
-    if (stockTwREl) {
-      stockTwREl.textContent = stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--';
-      stockTwREl.style.color = stockTwSt === '過高' ? 'var(--red)' : stockTwSt === '正常' ? 'var(--green)' : 'var(--yellow)';
-    }
+      <td style="color:var(--muted)">${s.pct||'--'}</td></tr>`).join('') || '<tr><td colspan="3">無資料</td></tr>';
 
     document.getElementById('footerNote').textContent =
       `Google Sheet 同步 · ${now.toLocaleDateString('zh-TW')} · USD/TWD ${fx.toFixed(3)}`;
