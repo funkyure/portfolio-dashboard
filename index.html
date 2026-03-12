@@ -454,18 +454,25 @@ async function loadAll() {
     const ibLev    = num(total[1][1]);
     const twPledge = num(total[2][1]);
 
-    const pledgeR    = pctNum(total[3][1]);  // 38%
-    const pledgeSt   = (total[3][3]||'').trim();   // 正常
-    const pledgeFR   = pctNum(total[4][1]);  // 14%
-    const pledgeFSt  = (total[4][3]||'').trim();   // 過低
-    const maintainR  = pctNum(total[5][1]);  // 266%
-    const maintainSt = (total[5][3]||'').trim();   // 正常
-    const levR       = pctNum(total[7][1]);  // 43%
-    const levSt      = (total[7][3]||'').trim();   // 過高
-    const stockR     = pctNum(total[9][1]);  // 35%
-    const stockSt    = (total[9][3]||'').trim();   // 正常
-    const stockTwR   = pctNum(total[11][1]); // 60%
-    const stockTwSt  = (total[11][3]||'').trim();  // 過高
+    const pledgeR    = pctNum(total[3][1]);
+    const pledgeSt   = (total[3][3]||'').trim();
+    const pledgeFR   = pctNum(total[4][1]);
+    const pledgeFSt  = (total[4][3]||'').trim();
+    const maintainR  = pctNum(total[5][1]);
+    const maintainSt = (total[5][3]||'').trim();
+    const levR       = pctNum(total[7][1]);
+    const levSt      = (total[7][3]||'').trim();
+    const stockR     = pctNum(total[9][1]);
+    const stockSt    = (total[9][3]||'').trim();
+    const stockTwR   = pctNum(total[11][1]);
+    const stockTwSt  = (total[11][3]||'').trim();
+
+    console.log('狀態debug:', {
+      pledgeSt, pledgeFSt, maintainSt, levSt, stockSt, stockTwSt,
+      row3: total[3],
+      row5: total[5],
+      row7: total[7],
+    });
 
     // 汇率 row12 col3
     const fx = num(total[12][3]) || 31.817;
