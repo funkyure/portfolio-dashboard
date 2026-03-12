@@ -522,6 +522,19 @@ async function loadAll() {
     bondTWD = num(total[15]?.[7]);
     if (!usTotal) usTotal = num(total[21]?.[1]);
 
+    // DEBUG
+    console.log('=== 債券 DEBUG ===');
+    console.log('row14:', JSON.stringify(total[14]));
+    console.log('row15:', JSON.stringify(total[15]));
+    console.log('row16:', JSON.stringify(total[16]));
+    console.log('bondUSD:', bondUSD, 'bondTWD:', bondTWD);
+    // 掃描全部row找債券市值
+    for (let i=0; i<total.length; i++) {
+      if ((total[i]||[]).some(c => c && c.includes('債券市值'))) {
+        console.log('債券市值在 row', i, ':', JSON.stringify(total[i]));
+      }
+    }
+
     // ── 計算 ──
     const usStockTWD = usTotal * fx;
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
