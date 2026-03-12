@@ -457,29 +457,41 @@ async function loadAll() {
     const pledgeR    = pctNum(total[3][1]);
     const pledgeFR   = pctNum(total[4][1]);
     const maintainR  = pctNum(total[5][1]);
+    const maintainFR = pctNum(total[6][1]);
     const levR       = pctNum(total[7][1]);
     const stockR     = pctNum(total[9][1]);
     const stockTwR   = pctNum(total[11][1]);
 
-    // 掃描整行找狀態文字（不依賴固定col）
-    const statusWords = ['正常','過高','過低','警示'];
-    function findStatus(row) {
-      if (!row) return '';
-      for (let j = 0; j < row.length; j++) {
-        const v = (row[j]||'').trim();
-        if (statusWords.includes(v)) return v;
-      }
-      return '';
+    // 下拉選單CSV無法讀取，改用數值判斷狀態
+    function pledgeStatus(val, target) {
+      if (val == null) return '';
+      if (val > target) return '過高';
+      if (val < target * 0.85) return '過低';
+      return '正常';
     }
-    const pledgeSt   = findStatus(total[3]);
-    const pledgeFSt  = findStatus(total[4]);
-    const maintainSt = findStatus(total[5]);
-    const levSt      = findStatus(total[7]);
-    const stockSt    = findStatus(total[9]);
-    const stockTwSt  = findStatus(total[11]);
+    function maintainStatus(val, min) {
+      if (val == null) return '';
+      return val >= min ? '正常' : '過低';
+    }
+    function leverageStatus(val, min) {
+      if (val == null) return '';
+      return val >= min ? '過高' : '正常';
+    }
 
-    console.log('狀態:', { pledgeSt, pledgeFSt, maintainSt, levSt });
-    console.log('row3:', JSON.stringify(total[3]));
+    // 質借比率目標40%，高於過高，低於34%過低
+    const pledgeSt   = pledgeStatus(pledgeR, 0.40);
+    // 質借比率含基金目標20%
+    const pledgeFSt  = pledgeStatus(pledgeFR, 0.20);
+    // 質借維持率>250%
+    const maintainSt = maintainStatus(maintainR, 2.50);
+    // 質借維持率含基金>500%
+    const maintainFSt = maintainStatus(maintainFR, 5.00);
+    // 槓桿比率>40%算過高
+    const levSt      = leverageStatus(levR, 0.40);
+    // 股票佔比（美）>30%算正常
+    const stockSt    = maintainStatus(stockR, 0.30);
+    // 股票佔比（美+台）含槓桿>50%算正常
+    const stockTwSt  = maintainStatus(stockTwR, 0.50);
 
     // 汇率 row12 col3
     const fx = num(total[12][3]) || 31.817;
