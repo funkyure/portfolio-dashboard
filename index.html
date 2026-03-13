@@ -589,8 +589,8 @@ async function loadAll() {
       `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
 
     // IB 投組
-    document.getElementById('ibNet').textContent = ibNet ? 'USD '+fmt(ibNet) : '--';
-    document.getElementById('ibLev').textContent = ibLev ? fmt(Math.abs(ibLev)) : '--';
+    document.getElementById('ibNet').textContent = ibNet ? 'US$'+fmt(ibNet) : '--';
+    document.getElementById('ibLev').textContent = ibLev ? 'US$'+fmt(Math.abs(ibLev)) : '--';
     pill(document.getElementById('levPill'), levSt);
     document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
     document.getElementById('levVal').style.color = levSt === '過高' ? 'var(--red)' : levSt === '正常' ? 'var(--green)' : 'var(--yellow)';
