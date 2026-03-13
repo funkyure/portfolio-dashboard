@@ -220,7 +220,8 @@
           <div class="contrib-row"><span>IBKR</span><span id="c-ibkr" class="pos">--</span></div>
           <div class="contrib-row"><span>台股基金</span><span id="c-tw" class="pos">--</span></div>
           <div class="contrib-row"><span>ETF</span><span id="c-etf" class="pos">--</span></div>
-          <div class="contrib-row"><span>2025 全年</span><span id="c-26" class="pos">--</span></div>
+          <div class="contrib-row"><span>2025 年全年損益</span><span id="c-26" class="pos">--</span></div>
+          <div class="contrib-row"><span>2024 年全年損益</span><span id="c-24" class="pos">--</span></div>
         </div>
       </div>
     </div>
@@ -500,6 +501,7 @@ async function loadAll() {
     const fx = num(total[12][3]) || 31.817;
 
     // ── 資產變化解析（2026 row3, 2025 row2）──
+    const ytd24v  = num(yearChg[1][6]);   // 2024全年總金額
     const ytd25v  = num(yearChg[2][6]);   // 2025全年總金額
     const tgt25   = num(yearChg[3][9]);   // 2026預算目標
     const ibkr26  = num(yearChg[3][1]);   // 2026 IBKR
@@ -631,6 +633,8 @@ async function loadAll() {
     document.getElementById('c-etf').textContent = etf26 ? 'NT$'+fmtSign(etf26) : '--';
     document.getElementById('c-26').textContent = ytd25v ? 'NT$'+fmtSign(ytd25v) : '--';
     document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
+    document.getElementById('c-24').textContent = ytd24v ? 'NT$'+fmtSign(ytd24v) : '--';
+    document.getElementById('c-24').className = ytd24v >= 0 ? 'pos' : 'neg';
 
     // 資產配置
     setBar('bar-bond', 'pct-bond', bondTWD    / grandTotal);
