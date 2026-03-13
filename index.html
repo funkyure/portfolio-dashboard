@@ -207,7 +207,10 @@
     <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
       <div>
         <div class="label">2026 YTD 報酬（累計）</div>
-        <div class="big-val pos" id="ytdVal">--</div>
+        <div style="display:flex; align-items:baseline; gap:4px; margin-top:6px;">
+          <span style="font-size:0.9rem; color:var(--muted); font-weight:400;">NT$</span>
+          <div class="big-val pos" id="ytdVal" style="margin-top:0">--</div>
+        </div>
         <div class="sub-text">
           達成率 <span id="ytdRate" style="color:var(--green)">--</span>（目標 <span id="ytdTarget">--</span>）
         </div>
@@ -622,11 +625,11 @@ async function loadAll() {
     ytdEl.className = 'big-val ' + (ytd26 >= 0 ? 'pos' : 'neg');
     document.getElementById('ytdRate').textContent = ytd26 && tgt25 ? (ytd26/tgt25*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTarget').textContent = tgt25 ? fmt(tgt25) : '--';
-    document.getElementById('c-ibkr').textContent = ibkr26 ? fmtSign(ibkr26) : '--';
+    document.getElementById('c-ibkr').textContent = ibkr26 ? 'NT$'+fmtSign(ibkr26) : '--';
     document.getElementById('c-ibkr').className = ibkr26 >= 0 ? 'pos' : 'neg';
-    document.getElementById('c-tw').textContent = tw26 ? fmtSign(tw26) : '--';
-    document.getElementById('c-etf').textContent = etf26 ? fmtSign(etf26) : '--';
-    document.getElementById('c-26').textContent = ytd25v ? fmtSign(ytd25v) : '--';
+    document.getElementById('c-tw').textContent = tw26 ? 'NT$'+fmtSign(tw26) : '--';
+    document.getElementById('c-etf').textContent = etf26 ? 'NT$'+fmtSign(etf26) : '--';
+    document.getElementById('c-26').textContent = ytd25v ? 'NT$'+fmtSign(ytd25v) : '--';
     document.getElementById('c-26').className = ytd25v >= 0 ? 'pos' : 'neg';
 
     // 資產配置
