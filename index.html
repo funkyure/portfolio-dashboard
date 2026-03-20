@@ -466,36 +466,16 @@ async function loadAll() {
     const stockR     = pctNum(total[9][1]);
     const stockTwR   = pctNum(total[11][1]);
 
-    // 下拉選單CSV無法讀取，改用數值判斷狀態
-    function pledgeStatus(val, target) {
-      if (val == null) return '';
-      if (val > target) return '過高';
-      if (val < target * 0.85) return '過低';
-      return '正常';
-    }
-    function maintainStatus(val, min) {
-      if (val == null) return '';
-      return val >= min ? '正常' : '過低';
-    }
-    function leverageStatus(val, min) {
-      if (val == null) return '';
-      return val >= min ? '過高' : '正常';
-    }
+    // 狀態從H欄(col7)讀取
+    const pledgeSt   = (total[3][7]||'').trim();
+    const pledgeFSt  = (total[4][7]||'').trim();
+    const maintainSt = (total[5][7]||'').trim();
+    const maintainFSt = (total[6][7]||'').trim();
+    const levSt      = (total[7][7]||'').trim();
+    const stockSt    = (total[9][7]||'').trim();
+    const stockTwSt  = (total[11][7]||'').trim();
 
-    // 質借比率目標40%，高於過高，低於34%過低
-    const pledgeSt   = pledgeStatus(pledgeR, 0.40);
-    // 質借比率含基金目標20%
-    const pledgeFSt  = pledgeStatus(pledgeFR, 0.20);
-    // 質借維持率>250%
-    const maintainSt = maintainStatus(maintainR, 2.50);
-    // 質借維持率含基金>500%
-    const maintainFSt = maintainStatus(maintainFR, 5.00);
-    // 槓桿比率>40%算過高
-    const levSt      = leverageStatus(levR, 0.40);
-    // 股票佔比（美）>30%算正常
-    const stockSt    = maintainStatus(stockR, 0.30);
-    // 股票佔比（美+台）含槓桿>50%算正常
-    const stockTwSt  = maintainStatus(stockTwR, 0.50);
+    console.log('狀態:', { pledgeSt, pledgeFSt, maintainSt, levSt });
 
     // 汇率 row12 col3
     const fx = num(total[12][3]) || 31.817;
