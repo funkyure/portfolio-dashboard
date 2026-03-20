@@ -237,19 +237,19 @@
       <div>
         <div class="mini-label">槓桿比率（美）</div>
         <div class="mini-val" id="levVal">--</div>
-        <div class="mini-tgt" id="levSub">目標 &gt;40%</div>
+        <div class="mini-tgt" id="levSub">目標 --</div>
         <div id="levValPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">股票佔比（美）</div>
         <div class="mini-val" id="stockR">--</div>
-        <div class="mini-tgt">目標 &gt;30%</div>
+        <div class="mini-tgt" id="stockTgt">目標 --</div>
         <div id="stockPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">股票佔比（美+台）</div>
         <div class="mini-val" id="stockTwR">--</div>
-        <div class="mini-tgt">目標 &gt;50%</div>
+        <div class="mini-tgt" id="stockTwTgt">目標 --</div>
         <div id="stockTwPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
@@ -265,13 +265,13 @@
       <div>
         <div class="mini-label">質借比率</div>
         <div class="mini-val" id="pledgeR">--</div>
-        <div class="mini-tgt">目標 40%</div>
+        <div class="mini-tgt" id="pledgeTgt">目標 --</div>
         <div id="pledgePill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">質借維持率</div>
         <div class="mini-val" id="maintainVal">--</div>
-        <div class="mini-tgt">&gt;250%</div>
+        <div class="mini-tgt" id="maintainTgt">--</div>
         <div id="maintainPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
@@ -286,13 +286,13 @@
       <div>
         <div class="mini-label">質借比率（含基金）</div>
         <div class="mini-val" id="pledgeFR">--</div>
-        <div class="mini-tgt">目標 20%</div>
+        <div class="mini-tgt" id="pledgeFTgt">目標 --</div>
         <div id="pledgeFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">維持率（含基金）</div>
         <div class="mini-val" id="maintainFVal">--</div>
-        <div class="mini-tgt">&gt;500%</div>
+        <div class="mini-tgt" id="maintainFTgt">--</div>
         <div id="maintainFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
@@ -469,6 +469,15 @@ async function loadAll() {
     const stockR     = pctNum(total[9][1]);
     const stockTwR   = pctNum(total[11][1]);
 
+    // 目標值從C欄(col2)讀取
+    const pledgeTgt   = (total[3][2]||'').trim();
+    const pledgeFTgt  = (total[4][2]||'').trim();
+    const maintainTgt = (total[5][2]||'').trim();
+    const maintainFTgt= (total[6][2]||'').trim();
+    const levTgt      = (total[7][2]||'').trim();
+    const stockTgt    = (total[9][2]||'').trim();
+    const stockTwTgt  = (total[11][2]||'').trim();
+
     // 狀態從H欄(col7)讀取
     const pledgeSt   = (total[3][7]||'').trim();
     const pledgeFSt  = (total[4][7]||'').trim();
@@ -579,7 +588,9 @@ async function loadAll() {
     pill(document.getElementById('levPill'), levSt);
     document.getElementById('levVal').textContent = levR ? (levR*100).toFixed(0)+'%' : '--';
     document.getElementById('levVal').style.color = levSt === '過高' ? 'var(--red)' : levSt === '正常' ? 'var(--green)' : 'var(--yellow)';
-    document.getElementById('levSub').textContent = '目標 >40%　' + (levSt || '--');
+    document.getElementById('levSub').textContent = '目標 ' + (levTgt || '--');
+    document.getElementById('stockTgt').textContent = '目標 ' + (stockTgt || '--');
+    document.getElementById('stockTwTgt').textContent = '目標 ' + (stockTwTgt || '--');
     const stockREl = document.getElementById('stockR');
     if (stockREl) { stockREl.textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--'; stockREl.style.color = stockSt === '過高' ? 'var(--red)' : stockSt === '正常' ? 'var(--green)' : 'var(--yellow)'; }
     pill(document.getElementById('levValPill'), levSt);
@@ -594,17 +605,21 @@ async function loadAll() {
     document.getElementById('twPledge').textContent = twPledge ? 'NT$'+fmt(twPledge) : '--';
     pill(document.getElementById('pledgePillTop'), pledgeSt);
     document.getElementById('pledgeR').textContent = pledgeR ? (pledgeR*100).toFixed(0)+'%' : '--';
+    document.getElementById('pledgeTgt').textContent = '目標 ' + (pledgeTgt || '--');
     pill(document.getElementById('pledgePill'), pledgeSt);
     document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
+    document.getElementById('maintainTgt').textContent = maintainTgt || '--';
     pill(document.getElementById('maintainPill'), maintainSt);
 
     // 台灣基金
     const twFundValEl = document.getElementById('twFundVal');
     if (twFundValEl) twFundValEl.textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
     document.getElementById('pledgeFR').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
+    document.getElementById('pledgeFTgt').textContent = '目標 ' + (pledgeFTgt || '--');
     pill(document.getElementById('pledgeFPill'), pledgeFSt);
     const maintainFEl = document.getElementById('maintainFVal');
     if (maintainFEl) maintainFEl.textContent = maintainFR ? (maintainFR*100).toFixed(0)+'%' : '--';
+    document.getElementById('maintainFTgt').textContent = maintainFTgt || '--';
     pill(document.getElementById('maintainFPill'), maintainFSt);
 
     // YTD
