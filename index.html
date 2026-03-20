@@ -271,7 +271,7 @@
       <div>
         <div class="mini-label">質借維持率</div>
         <div class="mini-val" id="maintainVal">--</div>
-        <div class="mini-tgt" id="maintainTgt">--</div>
+        <div class="mini-tgt" id="maintainTgt">目標 --</div>
         <div id="maintainPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
@@ -292,7 +292,7 @@
       <div>
         <div class="mini-label">維持率（含基金）</div>
         <div class="mini-val" id="maintainFVal">--</div>
-        <div class="mini-tgt" id="maintainFTgt">--</div>
+        <div class="mini-tgt" id="maintainFTgt">目標 --</div>
         <div id="maintainFPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
@@ -608,7 +608,7 @@ async function loadAll() {
     document.getElementById('pledgeTgt').textContent = '目標 ' + (pledgeTgt || '--');
     pill(document.getElementById('pledgePill'), pledgeSt);
     document.getElementById('maintainVal').textContent = maintainR ? (maintainR*100).toFixed(0)+'%' : '--';
-    document.getElementById('maintainTgt').textContent = maintainTgt || '--';
+    document.getElementById('maintainTgt').textContent = '目標 ' + (maintainTgt || '--');
     pill(document.getElementById('maintainPill'), maintainSt);
 
     // 台灣基金
@@ -619,7 +619,7 @@ async function loadAll() {
     pill(document.getElementById('pledgeFPill'), pledgeFSt);
     const maintainFEl = document.getElementById('maintainFVal');
     if (maintainFEl) maintainFEl.textContent = maintainFR ? (maintainFR*100).toFixed(0)+'%' : '--';
-    document.getElementById('maintainFTgt').textContent = maintainFTgt || '--';
+    document.getElementById('maintainFTgt').textContent = '目標 ' + (maintainFTgt || '--');
     pill(document.getElementById('maintainFPill'), maintainFSt);
 
     // YTD
