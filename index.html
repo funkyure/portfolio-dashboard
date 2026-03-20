@@ -238,16 +238,19 @@
         <div class="mini-label">槓桿比率（美）</div>
         <div class="mini-val" id="levVal">--</div>
         <div class="mini-tgt" id="levSub">目標 &gt;40%</div>
+        <div id="levValPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">股票佔比（美）</div>
         <div class="mini-val" id="stockR">--</div>
         <div class="mini-tgt">目標 &gt;30%</div>
+        <div id="stockPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
       <div>
         <div class="mini-label">股票佔比（美+台）</div>
         <div class="mini-val" id="stockTwR">--</div>
         <div class="mini-tgt">目標 &gt;50%</div>
+        <div id="stockTwPill" class="pill pill-green" style="margin-top:4px;"><span class="dot dot-g"></span>--</div>
       </div>
     </div>
   </div>
@@ -579,8 +582,11 @@ async function loadAll() {
     document.getElementById('levSub').textContent = '目標 >40%　' + (levSt || '--');
     const stockREl = document.getElementById('stockR');
     if (stockREl) { stockREl.textContent = stockR ? (stockR*100).toFixed(0)+'%' : '--'; stockREl.style.color = stockSt === '過高' ? 'var(--red)' : stockSt === '正常' ? 'var(--green)' : 'var(--yellow)'; }
+    pill(document.getElementById('levValPill'), levSt);
+    pill(document.getElementById('stockPill'), stockSt);
     const stockTwREl = document.getElementById('stockTwR');
     if (stockTwREl) { stockTwREl.textContent = stockTwR ? (stockTwR*100).toFixed(0)+'%' : '--'; stockTwREl.style.color = stockTwSt === '過高' ? 'var(--red)' : stockTwSt === '正常' ? 'var(--green)' : 'var(--yellow)'; }
+    pill(document.getElementById('stockTwPill'), stockTwSt);
 
     // 台灣ETF
     const twETFValEl = document.getElementById('twETFVal');
