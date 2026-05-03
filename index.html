@@ -826,9 +826,15 @@ async function loadAll() {
     const pledgeR  = pct(total[3][1]);
     const pledgeSt = (total[3][7]||'').trim();
     const pledgeTgt= (total[3][2]||'').trim();
-    const maintainR= pct(total[5][1]);
-    const maintainSt=(total[5][7]||'').trim();
+    const pledgeFR  = pct(total[4][1]);
+    const pledgeFSt = (total[4][7]||'').trim();
+    const pledgeFTgt= (total[4][2]||'').trim();
+    const maintainR = pct(total[5][1]);
+    const maintainSt= (total[5][7]||'').trim();
     const maintainTgt=(total[5][2]||'').trim();
+    const maintainFR  = pct(total[6][1]);
+    const maintainFSt = (total[6][7]||'').trim();
+    const maintainFTgt= (total[6][2]||'').trim();
     const levR     = pct(total[7][1]);
     const levSt    = (total[7][7]||'').trim();
     const levTgt   = (total[7][2]||'').trim();
@@ -1031,12 +1037,6 @@ async function loadAll() {
 
     // 台灣基金
     document.getElementById('twFundBig').textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
-    const pledgeFR   = pct(total[4][1]);
-    const pledgeFSt  = (total[4][7]||'').trim();
-    const pledgeFTgt = (total[4][2]||'').trim();
-    const maintainFR  = pct(total[6][1]);
-    const maintainFSt = (total[6][7]||'').trim();
-    const maintainFTgt= (total[6][2]||'').trim();
     document.getElementById('pledgeFRBig').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
     document.getElementById('pledgeFTgtBig').textContent = '目標 '+(pledgeFTgt||'--');
     setPill('pledgeFPillSub', pledgeFSt);
@@ -1131,12 +1131,18 @@ async function loadAll() {
           const ytdPct = (start && start !== cur) ? (cur - start) / start * 100 : null;
           // chgP 已是百分比字串如 "1.60%"，直接用num取數字
           const chgPct = num(latestMap[name].chgP);
-          fundNavMap[name] = { chgPct, ytdPct };
+          fundNavMap[name] = { chgPct, ytdPct, curNav: latestMap[name].nav };
         }
       }
     } catch(e) { console.log('基金淨值讀取失敗', e); }
 
-    // 趨勢圖：從每日淨值tab讀實際數據
+    // 基金年初淨值（手動輸入）
+    const fundYTDBase = {
+      '統一奔騰': 418.62,
+      '統一黑馬': 352.68,
+      '安聯台灣科技': 387.53,
+      '安聯台灣大壩': 164.4,
+    };
     let trendNavRows = null;
     try {
       const trendRes = await fetch(csvUrl('每日淨值'));
@@ -1162,11 +1168,18 @@ async function loadAll() {
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
     document.getElementById('fundTable').innerHTML = fundList.map(s => {
       const nav = fundNavMap[s.name] || {};
+      // 今日漲跌從基金淨值tab
       const chgCell = nav.chgPct != null
         ? `<td class="${nav.chgPct>=0?'up':'down'}">${nav.chgPct>=0?'▲':'▼'} ${Math.abs(nav.chgPct).toFixed(2)}%</td>`
         : `<td style="color:var(--muted)">--</td>`;
-      const ytdCell = nav.ytdPct != null
-        ? `<td class="${nav.ytdPct>=0?'up':'down'}">${nav.ytdPct>=0?'+':''}${nav.ytdPct.toFixed(2)}%</td>`
+      // 今年以來：用基金淨值tab算，或用年初淨值
+      let ytdPct = nav.ytdPct;
+      if (ytdPct == null && fundYTDBase[s.name]) {
+        const curNav = fundNavMap[s.name]?.curNav;
+        if (curNav) ytdPct = (curNav - fundYTDBase[s.name]) / fundYTDBase[s.name] * 100;
+      }
+      const ytdCell = ytdPct != null
+        ? `<td class="${ytdPct>=0?'up':'down'}">${ytdPct>=0?'+':''}${ytdPct.toFixed(2)}%</td>`
         : `<td style="color:var(--muted)">--</td>`;
       return `<tr>
         <td class="ticker fund">${s.name}</td>
