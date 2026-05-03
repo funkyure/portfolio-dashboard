@@ -86,8 +86,12 @@ body {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px; margin-bottom: 20px;
 }
-@media(max-width:900px){ .card-grid { grid-template-columns: repeat(2,1fr); } }
-@media(max-width:500px){ .card-grid { grid-template-columns: 1fr; } }
+@media(max-width:768px){
+  .detail-grid { grid-template-columns: 1fr !important; }
+  .card-grid   { grid-template-columns: repeat(2,1fr) !important; }
+  .charts-row  { grid-template-columns: 1fr !important; }
+  .tables-row  { grid-template-columns: 1fr !important; }
+}
 
 .card {
   background: var(--surface);
@@ -346,7 +350,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   </div>
 
   <!-- 投組詳情三格 -->
-  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px;">
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px;" class="detail-grid">
 
     <!-- IB 投組 -->
     <div class="card">
@@ -886,19 +890,18 @@ async function loadAll() {
     setG('g-stockus', 'gs-stockus',  stockR,   stockTgt,   stockSt,   true);
     setG('g-stocktw', 'gs-stocktw',  stockTwR, stockTwTgt, stockTwSt, true);
     setG('g-pledge',  'gs-pledge',   pledgeR,  pledgeTgt,  pledgeSt,  true);
-    // 維持率：val直接是百分比整數，target也是
-    const maintainRaw = num(total[5][1]);  // 如 2.80 (280%)
-    const maintainTgtRaw = parseTargetPct(maintainTgt); // 2.5 (250%)
+    // 維持率：maintainR已是小數(2.80=280%)，直接顯示*100
     const mEl = document.getElementById('g-maintain');
     const mvEl = document.getElementById('gv-maintain');
     const msEl = document.getElementById('gs-maintain');
-    if (mEl && mvEl && maintainRaw != null) {
+    if (mEl && mvEl && maintainR != null) {
       const color = gaugeColor(maintainSt);
       mEl.style.stroke = color;
       mvEl.style.color = color;
-      mvEl.textContent = (maintainRaw*100).toFixed(0) + '%';
+      mvEl.textContent = (maintainR*100).toFixed(0) + '%';
+      const tgtNum = parseTargetPct(maintainTgt); // 250% → 2.5
       const circ = 232.5;
-      const ratio = maintainTgtRaw ? Math.min(maintainRaw/maintainTgtRaw, 1) : Math.min(maintainRaw/3, 1);
+      const ratio = tgtNum ? Math.min(maintainR/tgtNum, 1) : Math.min(maintainR/4, 1);
       setTimeout(() => mEl.setAttribute('stroke-dashoffset', circ*(1-ratio)), 300);
       if (msEl) msEl.textContent = '目標 ' + (maintainTgt || '--') + (maintainSt ? ' · '+maintainSt : '');
     }
