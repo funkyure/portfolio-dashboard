@@ -91,6 +91,7 @@ body {
   .card-grid   { grid-template-columns: repeat(2,1fr) !important; }
   .charts-row  { grid-template-columns: 1fr !important; }
   .tables-row  { grid-template-columns: 1fr !important; }
+  .metric-2col { grid-template-columns: 1fr !important; }
 }
 
 .card {
@@ -273,13 +274,38 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <button onclick="reloadAll()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:8px 16px; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
   </div>
 
-  <!-- Key Metrics -->
-  <div class="card-grid">
-    <div class="card">
-      <div class="card-label">2026 YTD 報酬</div>
-      <div class="card-value green" id="ytdVal">--</div>
-      <div class="card-sub">達成率 <span id="ytdRate" style="color:var(--green)">--</span>（目標 <span id="ytdTgt">--</span>）</div>
+  <!-- YTD 頂部大格 -->
+  <div class="card" style="margin-bottom:20px; background:linear-gradient(135deg, rgba(52,211,153,0.06), rgba(96,165,250,0.06)); border-color:rgba(52,211,153,0.2);">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div class="card-label">2026 YTD 報酬（累計）</div>
+        <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; letter-spacing:-1.5px; color:var(--green); margin-top:4px;" id="ytdBig">--</div>
+        <div style="font-size:13px; color:var(--muted); margin-top:6px;">
+          NT$ &nbsp;·&nbsp; 達成率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span>（目標 <span id="ytdTgtBig">--</span>）
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px; min-width:200px; padding-top:4px;">
+        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
+          <span style="color:var(--muted);">IBKR</span><span id="c-ibkr2" style="color:var(--green);">--</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
+          <span style="color:var(--muted);">台股基金</span><span id="c-tw2" style="color:var(--green);">--</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
+          <span style="color:var(--muted);">ETF</span><span id="c-etf2" style="color:var(--green);">--</span>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:6px; display:flex; justify-content:space-between; gap:24px; font-size:13px;">
+          <span style="color:var(--muted);">2025 年全年</span><span id="c-262" style="color:var(--green);">--</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
+          <span style="color:var(--muted);">2024 年全年</span><span id="c-242" style="color:var(--green);">--</span>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;" class="metric-2col">
     <div class="card">
       <div class="card-label">IBKR 投組淨值</div>
       <div class="card-value blue" id="ibNetVal">--</div>
@@ -290,10 +316,23 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="card-value purple" id="twTotalVal">--</div>
       <div class="card-sub">質借 <span id="pledgeVal">--</span> · <span id="pledgeBadge" class="badge badge-green">--</span></div>
     </div>
-    <div class="card">
+  </div>
+  <!-- 總資產長條 -->
+  <div class="card" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:18px 24px;">
+    <div>
       <div class="card-label">總資產（含槓桿）</div>
-      <div class="card-value" id="grandTotalVal">--</div>
-      <div class="card-sub">淨資產 <span id="netAssetVal" style="color:var(--green)">--</span></div>
+      <div class="card-value" id="grandTotalVal" style="font-size:1.8rem;">--</div>
+    </div>
+    <div style="display:flex; gap:32px; flex-wrap:wrap;">
+      <div>
+        <div class="card-label">淨資產</div>
+        <div style="font-size:1.2rem; font-weight:600; color:var(--green);" id="netAssetVal">--</div>
+      </div>
+      <div style="width:1px; background:var(--border); align-self:stretch;"></div>
+      <div>
+        <div class="card-label">USD/TWD</div>
+        <div style="font-size:1.2rem; font-weight:600; font-family:'JetBrains Mono',monospace;" id="fxDisplay">--</div>
+      </div>
     </div>
   </div>
 
@@ -455,35 +494,6 @@ tr:hover td { background: rgba(96,165,250,0.03); }
 
   </div>
 
-  <!-- YTD 細項 -->
-  <div class="card" style="margin-bottom:20px;">
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-      <div>
-        <div class="section-title" style="margin-bottom:10px;">2026 YTD 報酬（累計）</div>
-        <div style="font-family:'DM Serif Display',serif; font-size:2.4rem; letter-spacing:-1.5px; color:var(--green);" id="ytdBig">--</div>
-        <div style="font-size:13px; color:var(--muted); margin-top:6px;">
-          NT$ &nbsp; 達成率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span>（目標 <span id="ytdTgtBig">--</span>）
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:6px; min-width:200px; padding-top:4px;">
-        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
-          <span style="color:var(--muted);">IBKR</span><span id="c-ibkr2" style="color:var(--green);">--</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
-          <span style="color:var(--muted);">台股基金</span><span id="c-tw2" style="color:var(--green);">--</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
-          <span style="color:var(--muted);">ETF</span><span id="c-etf2" style="color:var(--green);">--</span>
-        </div>
-        <div style="border-top:1px solid var(--border); padding-top:6px; display:flex; justify-content:space-between; gap:24px; font-size:13px;">
-          <span style="color:var(--muted);">2025 年全年</span><span id="c-262" style="color:var(--green);">--</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; gap:24px; font-size:13px;">
-          <span style="color:var(--muted);">2024 年全年</span><span id="c-242" style="color:var(--green);">--</span>
-        </div>
-      </div>
-    </div>
-  </div>
   <div class="charts-row">
     <div class="chart-card">
       <div class="section-title">資產配置</div>
@@ -934,6 +944,8 @@ async function loadAll() {
     const now = new Date();
     document.getElementById('updateBadge').textContent =
       `🕐 ${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新 · USD/TWD ${fx.toFixed(3)}`;
+    const fxEl = document.getElementById('fxDisplay');
+    if (fxEl) fxEl.textContent = fx.toFixed(3);
 
     // Key metrics
     document.getElementById('ytdVal').textContent = ytd26 ? 'NT$'+fmtSign(ytd26) : '--';
