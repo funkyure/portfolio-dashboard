@@ -1096,7 +1096,13 @@ async function loadAll() {
     let fundNavMap = {}; // { 基金名: { chgPct, ytdPct } }
     try {
       const navRes = await fetch(csvUrl('基金淨值'));
-      if (navRes.ok) {
+      // 基金名稱正規化（基金淨值tab用全稱，總表用簡稱）
+    const fundNameMap = {
+      '安聯台灣科技': '安聯科技',
+      '安聯台灣大壩': '安聯大壩',
+    };
+
+    if (navRes.ok) {
         const navRows = parseCSV(await navRes.text());
         // row0 = header, row1+ = data
         // 每個基金只取最新一筆（最後一筆）
@@ -1106,7 +1112,8 @@ async function loadAll() {
 
         for (let i = 1; i < navRows.length; i++) {
           const r = navRows[i];
-          const name  = (r[0]||'').trim();
+          const rawName = (r[0]||'').trim();
+          const name  = fundNameMap[rawName] || rawName;
           const date  = (r[1]||'').trim();
           const nav   = num(r[2]);
           const chgP  = r[4]; // E欄 漲跌%
@@ -1136,11 +1143,13 @@ async function loadAll() {
       }
     } catch(e) { console.log('基金淨值讀取失敗', e); }
 
-    // 基金年初淨值（手動輸入）
+    // 基金年初淨值（同時支援簡稱和全稱）
     const fundYTDBase = {
       '統一奔騰': 418.62,
       '統一黑馬': 352.68,
+      '安聯科技': 387.53,
       '安聯台灣科技': 387.53,
+      '安聯大壩': 164.4,
       '安聯台灣大壩': 164.4,
     };
     let trendNavRows = null;
