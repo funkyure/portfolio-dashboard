@@ -782,14 +782,19 @@ async function loadAll() {
     }
 
     // 計算今日漲跌和今年以來
-    function calcChg(code) {
+    function calcChg(code, currentPrice) {
       const rows = dailyMap[code];
-      if (!rows || rows.length < 2) return { todayChg: null, ytdChg: null };
-      const today = rows[rows.length - 1].price;
-      const yesterday = rows[rows.length - 2].price;
-      const todayChg = yesterday ? (today - yesterday) / yesterday * 100 : null;
+      // 今日漲跌：需要昨日資料
+      let todayChg = null;
+      if (rows && rows.length >= 2) {
+        const today = rows[rows.length - 1].price;
+        const yesterday = rows[rows.length - 2].price;
+        todayChg = yesterday ? (today - yesterday) / yesterday * 100 : null;
+      }
+      // 今年以來：用總表現價 vs 年初股價
       const ytdPrice = ytdMap[code];
-      const ytdChg = ytdPrice ? (today - ytdPrice) / ytdPrice * 100 : null;
+      const cur = currentPrice || (rows && rows.length > 0 ? rows[rows.length-1].price : null);
+      const ytdChg = (ytdPrice && cur) ? (cur - ytdPrice) / ytdPrice * 100 : null;
       return { todayChg, ytdChg };
     }
 
@@ -951,22 +956,6 @@ async function loadAll() {
     // 年度報酬
     buildYearlyChart(ytd24||0, ytd25||0, ytd26||0);
 
-    // 趨勢圖：先用展示資料，之後接每日淨值
-    let navRows = null;
-    try {
-      const navRes = await fetch(csvUrl('每日淨值'));
-      if (navRes.ok) {
-        const navData = parseCSV(await navRes.text());
-        if (navData.length > 1) {
-          navRows = navData.slice(1).map(r => ({
-            date: r[0], label: r[0],
-            ytd: num(r[6])   // G欄 = YTD
-          })).filter(r => r.ytd != null);
-        }
-      }
-    } catch {}
-    buildTrendChart(navRows, ytd26, tgt26);
-
     // ── 三格投組詳情 ──
     function pillStyle(st) {
       if (st === '正常') return 'background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3)';
@@ -1047,7 +1036,7 @@ async function loadAll() {
     // ── 表格 ──
     // 美股
     document.getElementById('usTable').innerHTML = stocks.map(s => {
-      const { todayChg, ytdChg } = calcChg(s.ticker);
+      const { todayChg, ytdChg } = calcChg(s.ticker, num(s.price));
       return `<tr>
         <td class="ticker">${s.ticker}</td>
         <td>US${s.val||'--'}</td>
@@ -1062,7 +1051,7 @@ async function loadAll() {
 
     // 台股ETF
     document.getElementById('etfTable').innerHTML = etfList.map(s => {
-      const { todayChg, ytdChg } = calcChg(s.code);
+      const { todayChg, ytdChg } = calcChg(s.code, num(s.price));
       return `<tr>
         <td class="ticker tw">${s.code}</td>
         <td>${s.val||'--'}</td>
@@ -1110,12 +1099,37 @@ async function loadAll() {
         for (const name of Object.keys(latestMap)) {
           const cur   = latestMap[name].nav;
           const start = firstMap[name];
-          const ytdPct = start ? (cur - start) / start * 100 : null;
-          const chgPct = pct(latestMap[name].chgP);
-          fundNavMap[name] = { chgPct: chgPct ? chgPct * 100 : null, ytdPct };
+          // 如果只有一筆（start==cur），ytdPct設null
+          const ytdPct = (start && start !== cur) ? (cur - start) / start * 100 : null;
+          // chgP 已是百分比字串如 "1.60%"，直接用num取數字
+          const chgPct = num(latestMap[name].chgP);
+          fundNavMap[name] = { chgPct, ytdPct };
         }
       }
     } catch(e) { console.log('基金淨值讀取失敗', e); }
+
+    // 趨勢圖：從每日淨值tab讀實際數據
+    let trendNavRows = null;
+    try {
+      const trendRes = await fetch(csvUrl('每日淨值'));
+      if (trendRes.ok) {
+        const trendData = parseCSV(await trendRes.text());
+        if (trendData.length > 1) {
+          // 每天只取一筆（按日期去重，取最後一筆）
+          const dateMap = {};
+          for (const r of trendData) {
+            const dateStr = (r[0]||'').trim().split(' ')[0]; // 只取日期部分
+            const ytd = num(r[6]); // G欄 YTD
+            if (dateStr && ytd != null) dateMap[dateStr] = ytd;
+          }
+          trendNavRows = Object.entries(dateMap)
+            .sort((a,b) => a[0].localeCompare(b[0]))
+            .map(([date, ytd]) => ({ date, ytd }));
+        }
+      }
+    } catch(e) { console.log('每日淨值讀取失敗', e); }
+
+    buildTrendChart(trendNavRows, ytd26, tgt26);
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
     document.getElementById('fundTable').innerHTML = fundList.map(s => {
