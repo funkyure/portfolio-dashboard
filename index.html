@@ -251,6 +251,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="header-sub">IBKR + 台股 + 美債 · 自動同步</div>
     </div>
     <div class="update-badge" id="updateBadge">🕐 讀取中... · USD/TWD --</div>
+    <button onclick="reloadAll()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:8px 16px; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
   </div>
 
   <!-- Key Metrics -->
@@ -588,57 +589,16 @@ function badgeHtml(st) {
   return `<span class="badge badge-yellow">${st||'--'}</span>`;
 }
 
-// 今日漲跌：台股用 TWSE API，美股用 Yahoo
-async function fetchTWChange(code) {
-  try {
-    const clean = code.replace('TPE:','').replace(/[^0-9A-Za-z]/g,'');
-    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${clean}.TW?interval=1d&range=1d`);
-    const j = await r.json();
-    const q = j?.chart?.result?.[0]?.meta;
-    if (!q) return null;
-    const chg = ((q.regularMarketPrice - q.chartPreviousClose) / q.chartPreviousClose * 100);
-    return chg;
-  } catch { return null; }
-}
-async function fetchUSChange(ticker) {
-  try {
-    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`);
-    const j = await r.json();
-    const q = j?.chart?.result?.[0]?.meta;
-    if (!q) return null;
-    return ((q.regularMarketPrice - q.chartPreviousClose) / q.chartPreviousClose * 100);
-  } catch { return null; }
-}
-// 今年以來：比較現價與年初收盤
-async function fetchYTDChange(ticker, isTW) {
-  try {
-    const sym = isTW ? ticker.replace('TPE:','').replace(/[^0-9A-Za-z]/g,'')+'.TW' : ticker;
-    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`);
-    const j = await r.json();
-    const result = j?.chart?.result?.[0];
-    if (!result) return null;
-    const timestamps = result.timestamp;
-    const closes = result.indicators?.quote?.[0]?.close;
-    if (!timestamps || !closes) return null;
-    const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime() / 1000;
-    // 找最接近年初的收盤價
-    let startPrice = null;
-    for (let i = 0; i < timestamps.length; i++) {
-      if (timestamps[i] >= yearStart && closes[i]) {
-        startPrice = closes[i]; break;
-      }
-    }
-    const currentPrice = result.meta.regularMarketPrice;
-    if (!startPrice || !currentPrice) return null;
-    return (currentPrice - startPrice) / startPrice * 100;
-  } catch { return null; }
+// 計算漲跌顯示
+function chgHtml(chg) {
+  if (chg == null) return '<span style="color:var(--muted)">--</span>';
+  const cls = chg >= 0 ? 'up' : 'down';
+  const sym = chg >= 0 ? '▲' : '▼';
+  return `<span class="${cls}">${sym} ${Math.abs(chg).toFixed(2)}%</span>`;
 }
 
 function changeCell(chg) {
-  if (chg == null) return '<td style="color:var(--muted)">--</td>';
-  const cls = chg >= 0 ? 'up' : 'down';
-  const sym = chg >= 0 ? '▲' : '▼';
-  return `<td class="${cls}">${sym} ${Math.abs(chg).toFixed(2)}%</td>`;
+  return `<td>${chgHtml(chg)}</td>`;
 }
 
 // ── 圖表 ──
@@ -703,35 +663,70 @@ function buildYearlyChart(y24, y25, y26) {
   });
 }
 
-function buildTrendChart(navRows) {
-  // navRows: [{date, total, ytd}]
-  if (!navRows || navRows.length === 0) {
-    // 展示用假資料
-    navRows = [
-      {label:'1月', ytd: 800000},
-      {label:'2月', ytd: 1200000},
-      {label:'3月', ytd: 2100000},
-      {label:'4月', ytd: 3400000},
-      {label:'5月', ytd: null},
-    ];
+function buildTrendChart(navRows, ytd26, tgt26) {
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const yearEnd   = new Date(now.getFullYear(), 11, 31);
+  const totalDays = (yearEnd - yearStart) / 86400000;
+  const todayDays = (now - yearStart) / 86400000;
+
+  // 產生每月標籤（1月~12月）
+  const monthLabels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  // 預算線：線性從0到tgt26
+  const budgetData = monthLabels.map((_, i) => {
+    const d = (i + 0.5) / 12 * totalDays;
+    return tgt26 ? parseFloat(((d / totalDays) * tgt26 / 1e6).toFixed(3)) : null;
+  });
+
+  // 實際線：有每日淨值就用，否則線性推估到今天
+  let actualData;
+  if (navRows && navRows.length > 0) {
+    // 用實際資料，按月份對應
+    actualData = monthLabels.map((_, i) => {
+      const monthEnd = new Date(now.getFullYear(), i+1, 0);
+      // 找該月最後一筆
+      const row = [...navRows].reverse().find(r => {
+        const d = new Date(r.date);
+        return d.getMonth() === i && d <= now;
+      });
+      return row ? parseFloat((row.ytd/1e6).toFixed(3)) : null;
+    });
+  } else {
+    // 線性推估：均勻分配到今天的YTD
+    actualData = monthLabels.map((_, i) => {
+      const d = (i + 0.5) / 12 * totalDays;
+      if (d > todayDays) return null; // 未來月份不顯示
+      return ytd26 ? parseFloat(((d / todayDays) * ytd26 / 1e6).toFixed(3)) : null;
+    });
   }
-  const labels = navRows.map(r => r.label || r.date);
-  const vals   = navRows.map(r => r.ytd ? parseFloat((r.ytd/1e6).toFixed(3)) : null);
+
   if (trendChart) trendChart.destroy();
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: {
-      labels,
-      datasets: [{
-        label: '累計報酬',
-        data: vals,
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,0.08)',
-        fill: true, tension: 0.4,
-        pointRadius: 4, pointBackgroundColor: '#34d399',
-        pointBorderColor: '#080d14', pointBorderWidth: 2,
-        spanGaps: true
-      }]
+      labels: monthLabels,
+      datasets: [
+        {
+          label: '實際報酬',
+          data: actualData,
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52,211,153,0.08)',
+          fill: true, tension: 0.4,
+          pointRadius: 5, pointBackgroundColor: '#34d399',
+          pointBorderColor: '#080d14', pointBorderWidth: 2,
+          spanGaps: false
+        },
+        {
+          label: '預算目標',
+          data: budgetData,
+          borderColor: 'rgba(96,165,250,0.5)',
+          borderDash: [6, 4],
+          backgroundColor: 'transparent',
+          tension: 0, pointRadius: 0,
+          spanGaps: true
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -750,14 +745,53 @@ function buildTrendChart(navRows) {
 // ── 主要資料讀取 ──
 async function loadAll() {
   try {
-    const [totalRes, chgRes] = await Promise.all([
+    const [totalRes, chgRes, dailyRes, ytdRes] = await Promise.all([
       fetch(csvUrl('總表')),
-      fetch(csvUrl('資產變化'))
+      fetch(csvUrl('資產變化')),
+      fetch(csvUrl('每日股價')),
+      fetch(csvUrl('年初股價'))
     ]);
 
     if (!totalRes.ok || !chgRes.ok) throw new Error('fetch failed');
-    const total   = parseCSV(await totalRes.text());
-    const yearChg = parseCSV(await chgRes.text());
+    const total    = parseCSV(await totalRes.text());
+    const yearChg  = parseCSV(await chgRes.text());
+
+    // 每日股價：{ 代號 -> [{ date, price }] } 按日期排序
+    const dailyMap = {}; // { 代號: [{date, price}] }
+    if (dailyRes.ok) {
+      const dailyRows = parseCSV(await dailyRes.text());
+      for (const r of dailyRows) {
+        const date = (r[0]||'').trim();
+        const code = (r[1]||'').trim();
+        const price = num(r[2]);
+        if (!code || price == null) continue;
+        if (!dailyMap[code]) dailyMap[code] = [];
+        dailyMap[code].push({ date, price });
+      }
+    }
+
+    // 年初股價：{ 代號 -> 年初價格 }
+    const ytdMap = {};
+    if (ytdRes.ok) {
+      const ytdRows = parseCSV(await ytdRes.text());
+      for (let i = 1; i < ytdRows.length; i++) {
+        const code  = (ytdRows[i][0]||'').trim();
+        const price = num(ytdRows[i][1]);
+        if (code && price != null) ytdMap[code] = price;
+      }
+    }
+
+    // 計算今日漲跌和今年以來
+    function calcChg(code) {
+      const rows = dailyMap[code];
+      if (!rows || rows.length < 2) return { todayChg: null, ytdChg: null };
+      const today = rows[rows.length - 1].price;
+      const yesterday = rows[rows.length - 2].price;
+      const todayChg = yesterday ? (today - yesterday) / yesterday * 100 : null;
+      const ytdPrice = ytdMap[code];
+      const ytdChg = ytdPrice ? (today - ytdPrice) / ytdPrice * 100 : null;
+      return { todayChg, ytdChg };
+    }
 
     // ── 基本數值 ──
     const ibNet    = num(total[0][1]);
@@ -931,7 +965,7 @@ async function loadAll() {
         }
       }
     } catch {}
-    buildTrendChart(navRows);
+    buildTrendChart(navRows, ytd26, tgt26);
 
     // ── 三格投組詳情 ──
     function pillStyle(st) {
@@ -1010,32 +1044,36 @@ async function loadAll() {
     c('c-ibkr2', ibkr26); c('c-tw2', tw26); c('c-etf2', etf26);
     c('c-262', ytd25); c('c-242', ytd24);
 
-    // ── 表格（先填資料，再異步更新）──
+    // ── 表格 ──
     // 美股
-    document.getElementById('usTable').innerHTML = stocks.map(s => `
-      <tr>
+    document.getElementById('usTable').innerHTML = stocks.map(s => {
+      const { todayChg, ytdChg } = calcChg(s.ticker);
+      return `<tr>
         <td class="ticker">${s.ticker}</td>
         <td>US${s.val||'--'}</td>
         <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
-        <td class="chg-us-${s.ticker}" style="color:var(--muted)">--</td>
-        <td class="ytd-us-${s.ticker}" style="color:var(--muted)">--</td>
+        ${changeCell(todayChg)}
+        ${changeCell(ytdChg)}
         <td>${s.pct||'--'}
           <div class="pbar-wrap"><div class="pbar-fill" style="width:${parseFloat(s.pct)||0}%;background:var(--blue)"></div></div>
         </td>
-      </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
 
     // 台股ETF
-    document.getElementById('etfTable').innerHTML = etfList.map(s => `
-      <tr>
+    document.getElementById('etfTable').innerHTML = etfList.map(s => {
+      const { todayChg, ytdChg } = calcChg(s.code);
+      return `<tr>
         <td class="ticker tw">${s.code}</td>
         <td>${s.val||'--'}</td>
         <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
-        <td class="chg-tw-${s.code}" style="color:var(--muted)">--</td>
-        <td class="ytd-tw-${s.code}" style="color:var(--muted)">--</td>
+        ${changeCell(todayChg)}
+        ${changeCell(ytdChg)}
         <td>${s.pct||'--'}
           <div class="pbar-wrap"><div class="pbar-fill" style="width:${parseFloat(s.pct)||0}%;background:var(--yellow)"></div></div>
         </td>
-      </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
 
     // ── 讀取基金淨值 tab ──
     let fundNavMap = {}; // { 基金名: { chgPct, ytdPct } }
@@ -1102,29 +1140,6 @@ async function loadAll() {
 
     document.getElementById('overlay').classList.add('hide');
 
-    // ── 異步抓今日漲跌 & 今年以來 ──
-    function setChgCell(el, chg) {
-      if (chg == null || !el) return;
-      const cls = chg >= 0 ? 'up' : 'down';
-      const sym = chg >= 0 ? '▲' : '▼';
-      el.className = cls;
-      el.textContent = `${sym} ${Math.abs(chg).toFixed(2)}%`;
-    }
-
-    // 美股
-    for (const s of stocks) {
-      fetchUSChange(s.ticker).then(chg =>
-        setChgCell(document.querySelector('.chg-us-'+s.ticker), chg));
-      fetchYTDChange(s.ticker, false).then(chg =>
-        setChgCell(document.querySelector('.ytd-us-'+s.ticker), chg));
-    }
-    // 台股ETF
-    for (const s of etfList) {
-      fetchTWChange(s.code).then(chg =>
-        setChgCell(document.querySelector('.chg-tw-'+s.code), chg));
-      fetchYTDChange(s.code, true).then(chg =>
-        setChgCell(document.querySelector('.ytd-tw-'+s.code), chg));
-    }
   } catch(e) {
     console.error('loadAll error:', e);
     if (!document.getElementById('ibNetVal').textContent ||
@@ -1133,6 +1148,13 @@ async function loadAll() {
     }
     document.getElementById('overlay').classList.add('hide');
   }
+}
+
+function reloadAll() {
+  document.getElementById('overlay').classList.remove('hide');
+  document.getElementById('overlay').style.opacity = '1';
+  document.getElementById('overlay').style.pointerEvents = 'all';
+  loadAll();
 }
 
 loadAll();
