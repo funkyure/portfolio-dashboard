@@ -468,6 +468,11 @@ tr:hover td { background: rgba(96,165,250,0.03); }
           <div style="font-size:10px;color:var(--muted);" id="maintainTgtBig">目標 --</div>
           <div id="maintainPillSub" style="margin-top:4px; display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:16px; font-size:11px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">--</div>
         </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">追繳緩衝區</div>
+          <div style="font-size:1.1rem;font-weight:600;" id="marginBufferBig">--</div>
+          <div style="font-size:10px;color:var(--muted);">跌破追繳線</div>
+        </div>
       </div>
     </div>
 
@@ -512,7 +517,19 @@ tr:hover td { background: rgba(96,165,250,0.03); }
 
   <!-- YTD Trend -->
   <div class="trend-card">
-    <div class="section-title">2026 YTD 報酬趨勢</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0;">2026 YTD 報酬趨勢</div>
+      <div style="display:flex; gap:24px;">
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;">歷史最高（ATH）</div>
+          <div style="font-size:1rem; font-weight:600; color:var(--yellow);" id="athVal">--</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;">距 ATH 回撤</div>
+          <div style="font-size:1rem; font-weight:600;" id="ddVal">--</div>
+        </div>
+      </div>
+    </div>
     <div class="trend-container">
       <canvas id="trendChart"></canvas>
     </div>
@@ -1067,6 +1084,15 @@ async function loadAll() {
     document.getElementById('maintainTgtBig').textContent = '目標 '+(maintainTgt||'--');
     setPill('maintainPillSub', maintainSt);
 
+    // 追繳緩衝區：(維持率 - 140%) / 維持率 * 100
+    const MARGIN_CALL = 1.40;
+    const bufferEl = document.getElementById('marginBufferBig');
+    if (bufferEl && maintainR) {
+      const buffer = (maintainR - MARGIN_CALL) / maintainR * 100;
+      bufferEl.textContent = buffer.toFixed(1) + '%';
+      bufferEl.style.color = buffer < 20 ? 'var(--red)' : buffer < 40 ? 'var(--yellow)' : 'var(--green)';
+    }
+
     // 台灣基金
     document.getElementById('twFundBig').textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
     document.getElementById('pledgeFRBig').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
@@ -1098,7 +1124,7 @@ async function loadAll() {
     document.getElementById('usTable').innerHTML = stocks.map(s => {
       const { todayChg, ytdChg } = calcChg(s.ticker, num(s.price));
       return `<tr>
-        <td class="ticker">${s.ticker}</td>
+        <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker} ↗</a></td>
         <td>US${s.val||'--'}</td>
         <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
@@ -1113,7 +1139,7 @@ async function loadAll() {
     document.getElementById('etfTable').innerHTML = etfList.map(s => {
       const { todayChg, ytdChg } = calcChg(s.code, num(s.price));
       return `<tr>
-        <td class="ticker tw">${s.code}</td>
+        <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code} ↗</a></td>
         <td>${s.val||'--'}</td>
         <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
@@ -1200,6 +1226,21 @@ async function loadAll() {
           trendNavRows = Object.entries(dateMap)
             .sort((a,b) => a[0].localeCompare(b[0]))
             .map(([date, ytd]) => ({ date, ytd }));
+
+          // ATH 和回撤
+          const allYtd = trendNavRows.map(r => r.ytd).filter(v => v != null);
+          if (allYtd.length > 0) {
+            const ath = Math.max(...allYtd);
+            const latest = allYtd[allYtd.length - 1];
+            const dd = ath > 0 ? (latest - ath) / ath * 100 : 0;
+            const athEl = document.getElementById('athVal');
+            const ddEl  = document.getElementById('ddVal');
+            if (athEl) athEl.textContent = 'NT$' + fmt(ath);
+            if (ddEl) {
+              ddEl.textContent = dd.toFixed(1) + '%';
+              ddEl.style.color = dd < -10 ? 'var(--red)' : dd < 0 ? 'var(--yellow)' : 'var(--green)';
+            }
+          }
         }
       }
     } catch(e) { console.log('每日淨值讀取失敗', e); }
