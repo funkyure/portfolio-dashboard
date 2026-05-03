@@ -898,6 +898,10 @@ async function loadAll() {
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
     const netAsset   = grandTotal - Math.abs(ibLev||0) * fx - (twPledge||0);
 
+    console.log('DEBUG:', { ibNet, ibLev, twPledge, fx, bondTWD, usTotal, twETFV, twFundV, grandTotal });
+    console.log('total[0]:', JSON.stringify(total[0]));
+    console.log('total[12]:', JSON.stringify(total[12]));
+
     // ── 更新 UI ──
     const now = new Date();
     document.getElementById('updateBadge').textContent =
@@ -1027,12 +1031,12 @@ async function loadAll() {
 
     // 台灣基金
     document.getElementById('twFundBig').textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
-    const pledgeFR = pct(total[4][1]);
-    const pledgeFSt = (total[4][7]||'').trim();
+    const pledgeFR   = pct(total[4][1]);
+    const pledgeFSt  = (total[4][7]||'').trim();
     const pledgeFTgt = (total[4][2]||'').trim();
-    const maintainFR = pct(total[6][1]);
+    const maintainFR  = pct(total[6][1]);
     const maintainFSt = (total[6][7]||'').trim();
-    const maintainFTgt = (total[6][2]||'').trim();
+    const maintainFTgt= (total[6][2]||'').trim();
     document.getElementById('pledgeFRBig').textContent = pledgeFR ? (pledgeFR*100).toFixed(0)+'%' : '--';
     document.getElementById('pledgeFTgtBig').textContent = '目標 '+(pledgeFTgt||'--');
     setPill('pledgeFPillSub', pledgeFSt);
