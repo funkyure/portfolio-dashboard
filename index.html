@@ -948,9 +948,7 @@ async function loadAll() {
     if (fxEl) fxEl.textContent = fx.toFixed(3);
 
     // Key metrics
-    document.getElementById('ytdVal').textContent = ytd26 ? 'NT$'+fmtSign(ytd26) : '--';
-    document.getElementById('ytdRate').textContent = ytd26 && tgt26 ? (ytd26/tgt26*100).toFixed(0)+'%' : '--';
-    document.getElementById('ytdTgt').textContent = tgt26 ? 'NT$'+fmt(tgt26) : '--';
+    // ytdVal/ytdRate/ytdTgt 已移除（改用ytdBig）
     document.getElementById('ibNetVal').textContent = ibNet ? 'US$'+fmtFull(ibNet) : '--';
     document.getElementById('ibLevVal').textContent = ibLev ? 'US$'+fmtFull(Math.abs(ibLev)) : '--';
     document.getElementById('levBadge').outerHTML = `<span id="levBadge">${badgeHtml(levSt)}</span>`;
