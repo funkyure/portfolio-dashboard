@@ -94,6 +94,11 @@ body {
   .metric-2col { grid-template-columns: 1fr !important; }
   .metric-5col { grid-template-columns: repeat(2,1fr) !important; }
 }
+@media(max-width:600px){
+  .hide-mobile { display: none !important; }
+  table { font-size: 11px; }
+  td, th { padding: 8px 3px !important; }
+}
 
 .card {
   background: var(--surface);
@@ -570,17 +575,15 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="table-title">🇺🇸 美股部位</div>
       <table>
         <thead><tr>
-          <th>代號</th><th>市值</th><th>現價</th>
-          <th>今日</th><th>今年以來</th><th>佔比</th>
-        </tr></thead>
-        <tbody id="usTable"><tr><td colspan="6" style="color:var(--muted)">讀取中...</td></tr></tbody>
+          <th>代號</th><th>市值</th><th class="hide-mobile">現價</th>
+          <th>今日</th><th>今年以來</th><th>佔比</th><tr><td colspan="6" style="color:var(--muted)">讀取中...</td></tr></tbody>
       </table>
     </div>
     <div class="table-card">
       <div class="table-title">🇹🇼 台股 ETF</div>
       <table>
         <thead><tr>
-          <th>代號</th><th>市值</th><th>現價</th>
+          <th>代號</th><th>市值</th><th class="hide-mobile">現價</th>
           <th>今日</th><th>今年以來</th><th>佔比</th>
         </tr></thead>
         <tbody id="etfTable"><tr><td colspan="6" style="color:var(--muted)">讀取中...</td></tr></tbody>
@@ -841,7 +844,7 @@ function buildYearlyChart(y24, y25, y26) {
   });
 }
 
-function buildTrendChart(navRows, ytd26, tgt26, spyData) {
+function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd   = new Date(now.getFullYear(), 11, 31);
@@ -931,9 +934,18 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
     tension: 0.3, pointRadius: 0, spanGaps: true
   });
 
-  if (spyNorm) datasets.push({
+  if (myReturnData) datasets.push({
+    label: '我的報酬率',
+    data: myReturnData,
+    borderColor: '#34d399',
+    borderDash: [3, 2],
+    backgroundColor: 'transparent',
+    tension: 0.3, pointRadius: 0, spanGaps: true,
+    yAxisID: 'y2'
+  });
+  if (spyData) datasets.push({
     label: 'S&P500 報酬率',
-    data: spyNorm,
+    data: spyData,
     borderColor: 'rgba(248,113,113,0.8)',
     borderDash: [3, 3],
     backgroundColor: 'transparent',
@@ -948,7 +960,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
       responsive: true, maintainAspectRatio: false,
       scales: {
         y:  { beginAtZero: false, position: 'left',  ticks: { callback: v => 'NT$'+v+'M' } },
-        y2: { beginAtZero: false, position: 'right', display: !!spyNorm,
+        y2: { beginAtZero: false, position: 'right', display: !!(spyData || myReturnData),
               ticks: { callback: v => v.toFixed(0)+'%', color: 'rgba(248,113,113,0.7)' },
               grid: { drawOnChartArea: false } },
         x:  { grid: { display: false } }
@@ -1013,17 +1025,17 @@ async function loadAll() {
       if (mktData.length > 1) {
         const last = mktData[mktData.length - 1];
         vixVal = num(last[1]) || null;
+        const SPY_BASE = 681.92; // 2026/1/2 年初價格
         const spyRows = mktData.slice(1).map(r => ({
           date: (r[0]||'').trim(), spy: num(r[2])
         })).filter(r => r.spy);
         if (spyRows.length > 0) {
-          const spyBase = spyRows[0].spy;
           const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
           spyData = ml.map((_, i) => {
             const row = [...spyRows].reverse().find(r => {
               const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i;
             });
-            return row ? parseFloat(((row.spy/spyBase-1)*100).toFixed(2)) : null;
+            return row ? parseFloat(((row.spy/SPY_BASE-1)*100).toFixed(2)) : null;
           });
         }
       }
@@ -1360,7 +1372,7 @@ async function loadAll() {
       return `<tr>
         <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker}${isLev?` <span style="color:var(--yellow);font-size:10px;border:1px solid var(--yellow);padding:0 3px;border-radius:3px;">⚡</span>`:''} ↗</a></td>
         <td>US${s.val||'--'}</td>
-        <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
+        <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
         ${ytdCell(ytdChg)}
         <td>${s.pct||'--'}
@@ -1376,7 +1388,7 @@ async function loadAll() {
       return `<tr>
         <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code}${isLev?` <span style="color:var(--yellow);font-size:10px;border:1px solid var(--yellow);padding:0 3px;border-radius:3px;">⚡</span>`:''} ↗</a></td>
         <td>${s.val||'--'}</td>
-        <td style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
+        <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
         ${ytdCell(ytdChg)}
         <td>${s.pct||'--'}
@@ -1460,7 +1472,38 @@ async function loadAll() {
       }
     } catch(e) { console.log('每日淨值讀取失敗', e); }
 
-    buildTrendChart(trendNavRows, ytd26, tgt26, spyData);
+    // 報酬率回推：每日淨值的 YTD / (總資產 - YTD) = 報酬率
+    let myReturnData = null;
+    if (trendNavRows && trendNavRows.length > 0) {
+      const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+      myReturnData = ml.map((_, i) => {
+        const row = [...trendNavRows].reverse().find(r => {
+          const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i && d <= now;
+        });
+        if (!row) {
+          // 線性推估
+          const todayDays2 = Math.ceil((now - new Date(now.getFullYear(),0,1)) / 86400000);
+          const d = (i+0.5)/12*365;
+          if (d > todayDays2) return null;
+          const initVal = grandTotal - (ytd26||0);
+          return initVal > 0 ? parseFloat(((d/todayDays2)*(ytd26/initVal)*100).toFixed(2)) : null;
+        }
+        const initVal = grandTotal - (ytd26||0);
+        return initVal > 0 ? parseFloat((row.ytd / initVal * 100).toFixed(2)) : null;
+      });
+    } else if (ytd26 && grandTotal) {
+      // 沒有歷史，全部線性推估
+      const initVal = grandTotal - ytd26;
+      const todayDays2 = Math.ceil((now - new Date(now.getFullYear(),0,1)) / 86400000);
+      const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+      myReturnData = ml.map((_, i) => {
+        const d = (i+0.5)/12*365;
+        if (d > todayDays2) return null;
+        return initVal > 0 ? parseFloat(((d/todayDays2)*(ytd26/initVal)*100).toFixed(2)) : null;
+      });
+    }
+
+    buildTrendChart(trendNavRows, ytd26, tgt26, spyData, myReturnData);
 
     // ── VIX ──
     const vixEl = document.getElementById('vixVal');
