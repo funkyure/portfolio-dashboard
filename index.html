@@ -964,11 +964,18 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
   });
 }
 
+// 透過 proxy 繞過 CORS
+function proxyUrl(url) {
+  return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+}
+
 // 抓 S&P500 今年月線
 async function fetchSPY() {
   try {
-    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y');
-    const j = await r.json();
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y';
+    const r = await fetch(proxyUrl(url));
+    const wrapper = await r.json();
+    const j = JSON.parse(wrapper.contents);
     const closes = j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
     return closes ? closes.slice(-12).map(v => v ? parseFloat(v.toFixed(2)) : null) : null;
   } catch { return null; }
@@ -977,8 +984,10 @@ async function fetchSPY() {
 // 抓 VIX
 async function fetchVIX() {
   try {
-    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d');
-    const j = await r.json();
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d';
+    const r = await fetch(proxyUrl(url));
+    const wrapper = await r.json();
+    const j = JSON.parse(wrapper.contents);
     return j?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
   } catch { return null; }
 }
@@ -986,8 +995,10 @@ async function fetchVIX() {
 // Fear & Greed
 async function fetchFearGreed() {
   try {
-    const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata');
-    const j = await r.json();
+    const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
+    const r = await fetch(proxyUrl(url));
+    const wrapper = await r.json();
+    const j = JSON.parse(wrapper.contents);
     return j?.fear_and_greed?.score || null;
   } catch { return null; }
 }
@@ -1558,9 +1569,6 @@ async function loadAll() {
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="5" style="color:var(--muted)">無資料</td></tr>';
-
-    document.getElementById('footerNote').textContent =
-      `Google Sheet 自動同步 · ${now.toLocaleDateString('zh-TW')} · USD/TWD ${fx.toFixed(3)}`;
 
     document.getElementById('overlay').classList.add('hide');
 
