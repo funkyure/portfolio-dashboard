@@ -526,12 +526,20 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     </div>
     <div class="chart-card">
       <div class="section-title">幣別曝險（USD/TWD）</div>
-      <div class="chart-container" style="height:200px;">
+      <div class="chart-container" style="height:180px;">
         <canvas id="currencyChart"></canvas>
       </div>
-      <div style="display:flex; justify-content:center; gap:24px; margin-top:14px; font-size:13px; font-family:'JetBrains Mono',monospace;">
-        <span style="color:var(--blue);">🇺🇸 USD <span id="usdPct" style="font-weight:600;">--</span></span>
-        <span style="color:var(--green);">🇹🇼 TWD <span id="twdPct" style="font-weight:600;">--</span></span>
+      <div style="display:flex; justify-content:center; gap:20px; margin-top:14px; font-size:12px; font-family:'JetBrains Mono',monospace; flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <div style="color:var(--blue); font-weight:600;">🇺🇸 USD</div>
+          <div id="usdPct" style="color:var(--blue);">--%</div>
+          <div id="usdAmt" style="color:var(--muted); font-size:11px;">--</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:var(--green); font-weight:600;">🇹🇼 TWD</div>
+          <div id="twdPct" style="color:var(--green);">--%</div>
+          <div id="twdAmt" style="color:var(--muted); font-size:11px;">--</div>
+        </div>
       </div>
     </div>
   </div>
@@ -590,35 +598,63 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     </div>
   </div>
 
-  <div class="footer" id="footerNote">Google Sheet 自動同步</div>
-
-  <!-- 情緒指標 -->
+  <!-- 情緒指標 & 壓力測試 -->
   <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col">
+
+    <!-- VIX -->
     <div class="card" style="text-align:center;">
-      <div class="card-label">VIX 恐慌指數</div>
-      <div style="font-family:'DM Serif Display',serif; font-size:2rem; margin-top:8px;" id="vixVal">--</div>
-      <div style="font-size:11px; color:var(--muted); margin-top:4px;" id="vixLabel">讀取中...</div>
-    </div>
-    <div class="card" style="text-align:center;">
-      <div class="card-label">CNN 恐懼貪婪指數</div>
-      <div style="font-family:'DM Serif Display',serif; font-size:2rem; margin-top:8px;" id="fgVal">--</div>
-      <div style="font-size:11px; color:var(--muted); margin-top:4px;" id="fgLabel">讀取中...</div>
-      <div style="height:6px; background:rgba(148,163,184,0.1); border-radius:3px; margin-top:10px; overflow:hidden;">
-        <div id="fgBar" style="height:100%; width:0%; background:linear-gradient(90deg,#f87171,#fbbf24,#34d399); transition:width 1s ease; border-radius:3px;"></div>
+      <div class="section-title" style="justify-content:center; margin-bottom:12px;">VIX 恐慌指數</div>
+      <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; margin-top:4px;" id="vixVal">--</div>
+      <div style="font-size:12px; margin-top:6px; font-weight:600;" id="vixLabel">讀取中...</div>
+      <div style="margin-top:12px; height:6px; background:rgba(148,163,184,0.1); border-radius:3px; overflow:hidden;">
+        <div id="vixBar" style="height:100%; width:0%; border-radius:3px; transition:width 1s ease;"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:4px;">
+        <span>平靜 &lt;15</span><span>波動 20-30</span><span>恐慌 &gt;40</span>
       </div>
     </div>
+
+    <!-- Fear & Greed 時速表 -->
     <div class="card" style="text-align:center;">
-      <div class="card-label">壓力測試</div>
-      <div style="font-size:11px; color:var(--muted); margin-top:8px; margin-bottom:8px;">大盤下跌多少，估算淨資產影響</div>
-      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;" id="stressButtons">
+      <div class="section-title" style="justify-content:center; margin-bottom:8px;">CNN 恐懼貪婪</div>
+      <div style="position:relative; width:160px; height:85px; margin:0 auto;">
+        <svg width="160" height="90" viewBox="0 0 160 90">
+          <!-- 背景弧 -->
+          <path d="M 15 80 A 65 65 0 0 1 145 80" fill="none" stroke="rgba(148,163,184,0.15)" stroke-width="14" stroke-linecap="round"/>
+          <!-- 彩色弧（漸層） -->
+          <defs>
+            <linearGradient id="fgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#f87171"/>
+              <stop offset="40%" stop-color="#fbbf24"/>
+              <stop offset="100%" stop-color="#34d399"/>
+            </linearGradient>
+          </defs>
+          <path d="M 15 80 A 65 65 0 0 1 145 80" fill="none" stroke="url(#fgGrad)" stroke-width="14" stroke-linecap="round"/>
+          <!-- 指針 -->
+          <line id="fgNeedle" x1="80" y1="80" x2="80" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"
+            transform="rotate(-90, 80, 80)" style="transition:transform 1.2s cubic-bezier(.4,0,.2,1)"/>
+          <circle cx="80" cy="80" r="5" fill="white"/>
+        </svg>
+      </div>
+      <div style="font-family:'DM Serif Display',serif; font-size:2rem; color:var(--text); margin-top:4px;" id="fgVal">--</div>
+      <div style="font-size:12px; font-weight:600; margin-top:4px;" id="fgLabel">讀取中...</div>
+    </div>
+
+    <!-- 壓力測試 -->
+    <div class="card">
+      <div class="section-title" style="margin-bottom:10px;">壓力測試</div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">大盤下跌時，估算全持倉影響（含債券）</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
         <button onclick="stressTest(0.10)" class="stress-btn">-10%</button>
         <button onclick="stressTest(0.20)" class="stress-btn">-20%</button>
         <button onclick="stressTest(0.30)" class="stress-btn">-30%</button>
         <button onclick="stressTest(0.40)" class="stress-btn">-40%</button>
       </div>
-      <div style="margin-top:10px; font-size:13px;" id="stressResult">點擊試算</div>
+      <div id="stressResult" style="font-size:13px; line-height:1.8;">點擊試算</div>
     </div>
+
   </div>
+  <div class="footer" id="footerNote"></div>
 </div>
 
 <script>
@@ -846,14 +882,13 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
   const hwm = validVals.length > 0 ? Math.max(...validVals) : null;
   const hwmData = hwm ? monthLabels.map(() => hwm) : [];
 
-  // S&P500 正規化（基準對齊到第一個資料點）
+  // S&P500 今年月線（報酬率%）
   let spyNorm = null;
-  if (spyData && spyData.length > 0 && validVals.length > 0) {
-    const base = spyData[0];
-    const firstVal = actualData.find(v => v != null) || 0;
+  if (spyData && spyData.length > 0) {
+    const base = spyData.find(v => v != null);
     spyNorm = monthLabels.map((_, i) => {
       if (spyData[i] == null) return null;
-      return parseFloat(((spyData[i] / base) * firstVal).toFixed(3));
+      return parseFloat(((spyData[i] / base - 1) * 100).toFixed(2));
     });
   }
 
@@ -896,18 +931,34 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
     tension: 0.3, pointRadius: 0, spanGaps: true
   });
 
+  if (spyNorm) datasets.push({
+    label: 'S&P500 報酬率',
+    data: spyNorm,
+    borderColor: 'rgba(248,113,113,0.8)',
+    borderDash: [3, 3],
+    backgroundColor: 'transparent',
+    tension: 0.3, pointRadius: 0, spanGaps: true,
+    yAxisID: 'y2'
+  });
+
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: { labels: monthLabels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: false, ticks: { callback: v => 'NT$'+v+'M' } },
-        x: { grid: { display: false } }
+        y:  { beginAtZero: false, position: 'left',  ticks: { callback: v => 'NT$'+v+'M' } },
+        y2: { beginAtZero: false, position: 'right', display: !!spyNorm,
+              ticks: { callback: v => v.toFixed(0)+'%', color: 'rgba(248,113,113,0.7)' },
+              grid: { drawOnChartArea: false } },
+        x:  { grid: { display: false } }
       },
       plugins: {
         legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M` } }
+        tooltip: { callbacks: { label: ctx => {
+          if (ctx.dataset.yAxisID === 'y2') return ` S&P500: ${ctx.parsed.y.toFixed(1)}%`;
+          return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
+        }}}
       }
     }
   });
@@ -1127,7 +1178,12 @@ async function loadAll() {
 
     // 幣別曝險圖
     const usdTWD = ((ibNet||0) + Math.abs(ibLev||0) + (usTotal||0) + (bondUSD||0)) * fx;
-    buildCurrencyChart(usdTWD, twETFV + twFundV);
+    const twdAmt = twETFV + twFundV;
+    buildCurrencyChart(usdTWD, twdAmt);
+    const usdAmtEl = document.getElementById('usdAmt');
+    const twdAmtEl = document.getElementById('twdAmt');
+    if (usdAmtEl) usdAmtEl.textContent = 'NT$' + fmt(usdTWD);
+    if (twdAmtEl) twdAmtEl.textContent = 'NT$' + fmt(twdAmt);
 
     // Gauge：圓形圖用「實際值/目標值」計算進度
     function parseTargetPct(s) {
@@ -1421,43 +1477,54 @@ async function loadAll() {
     // ── VIX ──
     const vixEl = document.getElementById('vixVal');
     const vixLEl = document.getElementById('vixLabel');
+    const vixBarEl = document.getElementById('vixBar');
     if (vixEl && vixVal) {
       vixEl.textContent = vixVal.toFixed(1);
-      if (vixVal < 15)      { vixEl.style.color='var(--green)';  vixLEl.textContent='極度平靜'; }
-      else if (vixVal < 20) { vixEl.style.color='var(--green)';  vixLEl.textContent='市場平靜'; }
-      else if (vixVal < 30) { vixEl.style.color='var(--yellow)'; vixLEl.textContent='市場波動'; }
-      else if (vixVal < 40) { vixEl.style.color='var(--red)';    vixLEl.textContent='恐慌中'; }
-      else                  { vixEl.style.color='var(--red)';    vixLEl.textContent='極度恐慌'; }
-    }
+      let vixColor, vixText, vixWidth;
+      if (vixVal < 15)      { vixColor='var(--green)';  vixText='極度平靜'; vixWidth=15; }
+      else if (vixVal < 20) { vixColor='var(--green)';  vixText='市場平靜'; vixWidth=30; }
+      else if (vixVal < 30) { vixColor='var(--yellow)'; vixText='市場波動'; vixWidth=55; }
+      else if (vixVal < 40) { vixColor='var(--red)';    vixText='恐慌中';   vixWidth=75; }
+      else                  { vixColor='var(--red)';    vixText='極度恐慌'; vixWidth=100; }
+      vixEl.style.color = vixColor;
+      if (vixLEl) { vixLEl.textContent = vixText; vixLEl.style.color = vixColor; }
+      if (vixBarEl) { vixBarEl.style.width = vixWidth+'%'; vixBarEl.style.background = vixColor; }
+    } else if (vixEl) { vixEl.textContent = '--'; if(vixLEl) vixLEl.textContent = '無法取得'; }
 
-    // ── Fear & Greed ──
+    // ── Fear & Greed 時速表指針 ──
     const fgEl = document.getElementById('fgVal');
     const fgLEl = document.getElementById('fgLabel');
-    const fgBar = document.getElementById('fgBar');
-    if (fgEl && fgScore) {
-      fgEl.textContent = fgScore.toFixed(0);
-      if (fgScore < 25)      { fgEl.style.color='var(--red)';    fgLEl.textContent='極度恐懼'; }
-      else if (fgScore < 45) { fgEl.style.color='var(--yellow)'; fgLEl.textContent='恐懼'; }
-      else if (fgScore < 55) { fgEl.style.color='var(--muted)';  fgLEl.textContent='中性'; }
-      else if (fgScore < 75) { fgEl.style.color='var(--green)';  fgLEl.textContent='貪婪'; }
-      else                   { fgEl.style.color='var(--green)';  fgLEl.textContent='極度貪婪'; }
-      if (fgBar) fgBar.style.width = fgScore + '%';
-    }
+    const fgNeedle = document.getElementById('fgNeedle');
+    if (fgEl && fgScore != null) {
+      fgEl.textContent = Math.round(fgScore);
+      // 指針：0=極恐懼(-90deg) 100=極貪婪(90deg)
+      const angle = (fgScore / 100 * 180) - 90;
+      if (fgNeedle) fgNeedle.setAttribute('transform', `rotate(${angle}, 80, 80)`);
+      let fgColor, fgText;
+      if (fgScore < 25)      { fgColor='var(--red)';    fgText='極度恐懼'; }
+      else if (fgScore < 45) { fgColor='var(--yellow)'; fgText='恐懼'; }
+      else if (fgScore < 55) { fgColor='var(--muted)';  fgText='中性'; }
+      else if (fgScore < 75) { fgColor='var(--green)';  fgText='貪婪'; }
+      else                   { fgColor='var(--green)';  fgText='極度貪婪'; }
+      fgEl.style.color = fgColor;
+      if (fgLEl) { fgLEl.textContent = fgText; fgLEl.style.color = fgColor; }
+    } else if (fgEl) { fgEl.textContent = '--'; if(fgLEl) fgLEl.textContent = '無法取得'; }
 
-    // ── 壓力測試（用stockTwR股票佔比估算）──
-    window._stressData = { grandTotal, stockTwR };
-    function stressTest(drop) {
+    // ── 壓力測試（全持倉，股票佔比+債券各自估計跌幅）──
+    // 假設大盤跌X%時：股票跌X%，債券跌X%*0.3（負相關但也受影響）
+    window._stressData = { grandTotal, usStockTWD, twETFV, twFundV, bondTWD };
+    window.stressTest = function(drop) {
       const d = window._stressData;
-      if (!d || !d.grandTotal) { document.getElementById('stressResult').textContent = '資料讀取中'; return; }
-      const stockPct = d.stockTwR || 0.6;
-      const impact = d.grandTotal * stockPct * drop;
-      const newVal = d.grandTotal - impact;
-      const el = document.getElementById('stressResult');
-      el.innerHTML = `大盤跌 <b style="color:var(--red)">${(drop*100).toFixed(0)}%</b> → 
-        資產估減 <b style="color:var(--red)">-NT$${fmt(impact)}</b><br>
-        估算淨資產 <b style="color:var(--yellow)">NT$${fmt(newVal)}</b>`;
-    }
-    window.stressTest = stressTest;
+      if (!d?.grandTotal) { document.getElementById('stressResult').textContent = '資料讀取中'; return; }
+      const stockImpact = (d.usStockTWD + d.twETFV + d.twFundV) * drop;
+      const bondImpact  = (d.bondTWD || 0) * drop * 0.3;
+      const total = stockImpact + bondImpact;
+      const newVal = d.grandTotal - total;
+      document.getElementById('stressResult').innerHTML =
+        `股票損失 <span style="color:var(--red)">-NT$${fmt(stockImpact)}</span><br>` +
+        `債券損失 <span style="color:var(--yellow)">-NT$${fmt(bondImpact)}</span><br>` +
+        `<b>估算總資產 <span style="color:var(--yellow)">NT$${fmt(newVal)}</span></b>`;
+    };
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
     const fundLinks = {
