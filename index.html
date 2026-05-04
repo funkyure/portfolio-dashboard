@@ -250,7 +250,15 @@ tr:hover td { background: rgba(96,165,250,0.03); }
 .pbar-wrap { height: 3px; background: rgba(148,163,184,0.1); border-radius: 2px; margin-top: 4px; }
 .pbar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
 
-.footer {
+.stress-btn {
+  background: rgba(96,165,250,0.1);
+  border: 1px solid rgba(96,165,250,0.3);
+  color: var(--blue); padding: 4px 12px;
+  border-radius: 12px; font-size: 12px;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.stress-btn:hover { background: rgba(96,165,250,0.2); }
   text-align: center; padding: 20px;
   color: var(--muted); font-size: 12px;
 }
@@ -583,6 +591,34 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   </div>
 
   <div class="footer" id="footerNote">Google Sheet 自動同步</div>
+
+  <!-- 情緒指標 -->
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col">
+    <div class="card" style="text-align:center;">
+      <div class="card-label">VIX 恐慌指數</div>
+      <div style="font-family:'DM Serif Display',serif; font-size:2rem; margin-top:8px;" id="vixVal">--</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;" id="vixLabel">讀取中...</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-label">CNN 恐懼貪婪指數</div>
+      <div style="font-family:'DM Serif Display',serif; font-size:2rem; margin-top:8px;" id="fgVal">--</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:4px;" id="fgLabel">讀取中...</div>
+      <div style="height:6px; background:rgba(148,163,184,0.1); border-radius:3px; margin-top:10px; overflow:hidden;">
+        <div id="fgBar" style="height:100%; width:0%; background:linear-gradient(90deg,#f87171,#fbbf24,#34d399); transition:width 1s ease; border-radius:3px;"></div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-label">壓力測試</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:8px; margin-bottom:8px;">大盤下跌多少，估算淨資產影響</div>
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;" id="stressButtons">
+        <button onclick="stressTest(0.10)" class="stress-btn">-10%</button>
+        <button onclick="stressTest(0.20)" class="stress-btn">-20%</button>
+        <button onclick="stressTest(0.30)" class="stress-btn">-30%</button>
+        <button onclick="stressTest(0.40)" class="stress-btn">-40%</button>
+      </div>
+      <div style="margin-top:10px; font-size:13px;" id="stressResult">點擊試算</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -720,19 +756,27 @@ function buildAllocChart(data) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          callbacks: { label: ctx => ` ${ctx.label}: ${(ctx.parsed/total*100).toFixed(1)}%` }
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed;
+              const pct = (v/total*100).toFixed(1);
+              const ntd = v >= 1e6 ? (v/1e6).toFixed(2)+'M' : (v/1e3).toFixed(0)+'K';
+              return ` ${ctx.label}: NT$${ntd} (${pct}%)`;
+            }
+          }
         }
       }
     }
   });
 
   const legend = document.getElementById('allocLegend');
-  legend.innerHTML = data.map((d,i) =>
-    `<div class="legend-item">
+  legend.innerHTML = data.map((d,i) => {
+    const ntd = d.val >= 1e6 ? (d.val/1e6).toFixed(2)+'M' : (d.val/1e3).toFixed(0)+'K';
+    return `<div class="legend-item">
       <div class="legend-dot" style="background:${colors[i]}"></div>
-      ${d.label} ${(d.val/total*100).toFixed(1)}%
-    </div>`
-  ).join('');
+      ${d.label} NT$${ntd} (${(d.val/total*100).toFixed(1)}%)
+    </div>`;
+  }).join('');
 }
 
 function buildYearlyChart(y24, y25, y26) {
@@ -761,7 +805,7 @@ function buildYearlyChart(y24, y25, y26) {
   });
 }
 
-function buildTrendChart(navRows, ytd26, tgt26) {
+function buildTrendChart(navRows, ytd26, tgt26, spyData) {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd   = new Date(now.getFullYear(), 11, 31);
@@ -770,33 +814,26 @@ function buildTrendChart(navRows, ytd26, tgt26) {
 
   const monthLabels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
-  // 預算線：全年線性
   const budgetData = monthLabels.map((_, i) => {
     const d = (i + 0.5) / 12 * totalDays;
     return tgt26 ? parseFloat(((d / totalDays) * tgt26 / 1e6).toFixed(3)) : null;
   });
 
-  // 實際線：有真實資料就用，否則用線性推估
   let actualData;
   const hasRealData = navRows && navRows.length > 0;
-
   if (hasRealData) {
-    // 有真實資料：按月份配對
     actualData = monthLabels.map((_, i) => {
       const row = [...navRows].reverse().find(r => {
         const d = new Date(r.date);
         return !isNaN(d) && d.getMonth() === i && d <= now;
       });
       if (row) return parseFloat((row.ytd/1e6).toFixed(3));
-      // 未到的月份：線性推估
       const monthMid = new Date(now.getFullYear(), i, 15);
       if (monthMid > now) return null;
-      // 過去但沒資料的月份也用線性推估
       const d = (i + 0.5) / 12 * totalDays;
       return ytd26 ? parseFloat(((d / todayDays) * ytd26 / 1e6).toFixed(3)) : null;
     });
   } else {
-    // 完全沒資料：全部線性推估到今天
     actualData = monthLabels.map((_, i) => {
       const d = (i + 0.5) / 12 * totalDays;
       if (d > todayDays) return null;
@@ -804,47 +841,108 @@ function buildTrendChart(navRows, ytd26, tgt26) {
     });
   }
 
+  // HWM 水位線
+  const validVals = actualData.filter(v => v != null);
+  const hwm = validVals.length > 0 ? Math.max(...validVals) : null;
+  const hwmData = hwm ? monthLabels.map(() => hwm) : [];
+
+  // S&P500 正規化（基準對齊到第一個資料點）
+  let spyNorm = null;
+  if (spyData && spyData.length > 0 && validVals.length > 0) {
+    const base = spyData[0];
+    const firstVal = actualData.find(v => v != null) || 0;
+    spyNorm = monthLabels.map((_, i) => {
+      if (spyData[i] == null) return null;
+      return parseFloat(((spyData[i] / base) * firstVal).toFixed(3));
+    });
+  }
+
   if (trendChart) trendChart.destroy();
+  const datasets = [
+    {
+      label: '實際報酬',
+      data: actualData,
+      borderColor: '#34d399',
+      backgroundColor: 'rgba(52,211,153,0.08)',
+      fill: true, tension: 0.3,
+      pointRadius: actualData.map(v => v != null ? 4 : 0),
+      pointBackgroundColor: '#34d399',
+      pointBorderColor: '#080d14', pointBorderWidth: 2,
+      spanGaps: true
+    },
+    {
+      label: '預算目標',
+      data: budgetData,
+      borderColor: 'rgba(96,165,250,0.4)',
+      borderDash: [6, 4],
+      backgroundColor: 'transparent',
+      tension: 0, pointRadius: 0, spanGaps: true
+    }
+  ];
+  if (hwm) datasets.push({
+    label: '高水位 (HWM)',
+    data: hwmData,
+    borderColor: '#fbbf24',
+    borderDash: [4, 3],
+    backgroundColor: 'transparent',
+    tension: 0, pointRadius: 0, spanGaps: true
+  });
+  if (spyNorm) datasets.push({
+    label: 'S&P500（對齊）',
+    data: spyNorm,
+    borderColor: 'rgba(248,113,113,0.7)',
+    borderDash: [2, 2],
+    backgroundColor: 'transparent',
+    tension: 0.3, pointRadius: 0, spanGaps: true
+  });
+
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
-    data: {
-      labels: monthLabels,
-      datasets: [
-        {
-          label: '實際報酬',
-          data: actualData,
-          borderColor: '#34d399',
-          backgroundColor: 'rgba(52,211,153,0.08)',
-          fill: true, tension: 0.3,
-          pointRadius: actualData.map(v => v != null ? 5 : 0),
-          pointBackgroundColor: '#34d399',
-          pointBorderColor: '#080d14', pointBorderWidth: 2,
-          spanGaps: true  // 連接有資料的點，形成連續線
-        },
-        {
-          label: '預算目標',
-          data: budgetData,
-          borderColor: 'rgba(96,165,250,0.5)',
-          borderDash: [6, 4],
-          backgroundColor: 'transparent',
-          tension: 0, pointRadius: 0,
-          spanGaps: true
-        }
-      ]
-    },
+    data: { labels: monthLabels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true, ticks: { callback: v => 'NT$'+v+'M' } },
+        y: { beginAtZero: false, ticks: { callback: v => 'NT$'+v+'M' } },
         x: { grid: { display: false } }
       },
       plugins: {
-        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
-        tooltip: { callbacks: { label: ctx => ` NT$ ${ctx.parsed.y}M` } }
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M` } }
       }
     }
   });
 }
+
+// 抓 S&P500 今年月線
+async function fetchSPY() {
+  try {
+    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y');
+    const j = await r.json();
+    const closes = j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+    return closes ? closes.slice(-12).map(v => v ? parseFloat(v.toFixed(2)) : null) : null;
+  } catch { return null; }
+}
+
+// 抓 VIX
+async function fetchVIX() {
+  try {
+    const r = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d');
+    const j = await r.json();
+    return j?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+  } catch { return null; }
+}
+
+// Fear & Greed
+async function fetchFearGreed() {
+  try {
+    const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata');
+    const j = await r.json();
+    return j?.fear_and_greed?.score || null;
+  } catch { return null; }
+}
+
+// 15分鐘自動刷新
+setTimeout(() => location.reload(), 15 * 60 * 1000);
 
 // ── 主要資料讀取 ──
 async function loadAll() {
@@ -859,6 +957,11 @@ async function loadAll() {
     if (!totalRes.ok || !chgRes.ok) throw new Error('fetch failed');
     const total    = parseCSV(await totalRes.text());
     const yearChg  = parseCSV(await chgRes.text());
+
+    // 外部數據異步抓（不阻塞主流程）
+    const [spyData, vixVal, fgScore] = await Promise.allSettled([
+      fetchSPY(), fetchVIX(), fetchFearGreed()
+    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : null));
 
     // 每日股價：{ 代號 -> [{ date, price }] } 按日期排序
     const dailyMap = {}; // { 代號: [{date, price}] }
@@ -1179,7 +1282,7 @@ async function loadAll() {
 
     // ── 表格 ──
     // 美股
-    const leveraged = ['QLD','MSFU','GGLL','AAPU','UNHG','00631L'];
+    const leveraged = ['QLD','MSFU','GGLL','AAPU','UNHG','USD','00631L','00685L'];
     document.getElementById('usTable').innerHTML = stocks.map(s => {
       const { todayChg, ytdChg } = calcChg(s.ticker, num(s.price));
       const isLev = leveraged.includes(s.ticker);
@@ -1313,7 +1416,48 @@ async function loadAll() {
       }
     } catch(e) { console.log('每日淨值讀取失敗', e); }
 
-    buildTrendChart(trendNavRows, ytd26, tgt26);
+    buildTrendChart(trendNavRows, ytd26, tgt26, spyData);
+
+    // ── VIX ──
+    const vixEl = document.getElementById('vixVal');
+    const vixLEl = document.getElementById('vixLabel');
+    if (vixEl && vixVal) {
+      vixEl.textContent = vixVal.toFixed(1);
+      if (vixVal < 15)      { vixEl.style.color='var(--green)';  vixLEl.textContent='極度平靜'; }
+      else if (vixVal < 20) { vixEl.style.color='var(--green)';  vixLEl.textContent='市場平靜'; }
+      else if (vixVal < 30) { vixEl.style.color='var(--yellow)'; vixLEl.textContent='市場波動'; }
+      else if (vixVal < 40) { vixEl.style.color='var(--red)';    vixLEl.textContent='恐慌中'; }
+      else                  { vixEl.style.color='var(--red)';    vixLEl.textContent='極度恐慌'; }
+    }
+
+    // ── Fear & Greed ──
+    const fgEl = document.getElementById('fgVal');
+    const fgLEl = document.getElementById('fgLabel');
+    const fgBar = document.getElementById('fgBar');
+    if (fgEl && fgScore) {
+      fgEl.textContent = fgScore.toFixed(0);
+      if (fgScore < 25)      { fgEl.style.color='var(--red)';    fgLEl.textContent='極度恐懼'; }
+      else if (fgScore < 45) { fgEl.style.color='var(--yellow)'; fgLEl.textContent='恐懼'; }
+      else if (fgScore < 55) { fgEl.style.color='var(--muted)';  fgLEl.textContent='中性'; }
+      else if (fgScore < 75) { fgEl.style.color='var(--green)';  fgLEl.textContent='貪婪'; }
+      else                   { fgEl.style.color='var(--green)';  fgLEl.textContent='極度貪婪'; }
+      if (fgBar) fgBar.style.width = fgScore + '%';
+    }
+
+    // ── 壓力測試（用stockTwR股票佔比估算）──
+    window._stressData = { grandTotal, stockTwR };
+    function stressTest(drop) {
+      const d = window._stressData;
+      if (!d || !d.grandTotal) { document.getElementById('stressResult').textContent = '資料讀取中'; return; }
+      const stockPct = d.stockTwR || 0.6;
+      const impact = d.grandTotal * stockPct * drop;
+      const newVal = d.grandTotal - impact;
+      const el = document.getElementById('stressResult');
+      el.innerHTML = `大盤跌 <b style="color:var(--red)">${(drop*100).toFixed(0)}%</b> → 
+        資產估減 <b style="color:var(--red)">-NT$${fmt(impact)}</b><br>
+        估算淨資產 <b style="color:var(--yellow)">NT$${fmt(newVal)}</b>`;
+    }
+    window.stressTest = stressTest;
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
     const fundLinks = {
