@@ -964,41 +964,11 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData) {
   });
 }
 
-// 透過 proxy 繞過 CORS
-function proxyUrl(url) {
-  return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-}
-
-// 抓 S&P500 今年月線
-async function fetchSPY() {
-  try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y';
-    const r = await fetch(proxyUrl(url));
-    const wrapper = await r.json();
-    const j = JSON.parse(wrapper.contents);
-    const closes = j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
-    return closes ? closes.slice(-12).map(v => v ? parseFloat(v.toFixed(2)) : null) : null;
-  } catch { return null; }
-}
-
-// 抓 VIX
-async function fetchVIX() {
-  try {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d';
-    const r = await fetch(proxyUrl(url));
-    const wrapper = await r.json();
-    const j = JSON.parse(wrapper.contents);
-    return j?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
-  } catch { return null; }
-}
-
-// Fear & Greed
+// Fear & Greed（直接抓CNN）
 async function fetchFearGreed() {
   try {
-    const url = 'https://production.dataviz.cnn.io/index/fearandgreed/graphdata';
-    const r = await fetch(proxyUrl(url));
-    const wrapper = await r.json();
-    const j = JSON.parse(wrapper.contents);
+    const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata');
+    const j = await r.json();
     return j?.fear_and_greed?.score || null;
   } catch { return null; }
 }
@@ -1009,26 +979,60 @@ setTimeout(() => location.reload(), 15 * 60 * 1000);
 // ── 主要資料讀取 ──
 async function loadAll() {
   try {
-    const [totalRes, chgRes, dailyRes, ytdRes] = await Promise.all([
+    // 所有資料同時並發抓取
+    const [totalRes, chgRes, dailyRes, ytdRes, navRes, trendRes, mktRes, fgResult] = await Promise.all([
       fetch(csvUrl('總表')),
       fetch(csvUrl('資產變化')),
       fetch(csvUrl('每日股價')),
-      fetch(csvUrl('年初股價'))
+      fetch(csvUrl('年初股價')),
+      fetch(csvUrl('基金淨值')),
+      fetch(csvUrl('每日淨值')),
+      fetch(csvUrl('市場數據')),
+      fetchFearGreed()
     ]);
 
     if (!totalRes.ok || !chgRes.ok) throw new Error('fetch failed');
-    const total    = parseCSV(await totalRes.text());
-    const yearChg  = parseCSV(await chgRes.text());
 
-    // 外部數據異步抓（不阻塞主流程）
-    const [spyData, vixVal, fgScore] = await Promise.allSettled([
-      fetchSPY(), fetchVIX(), fetchFearGreed()
-    ]).then(r => r.map(x => x.status === 'fulfilled' ? x.value : null));
+    // 同時解析所有文字
+    const [totalTxt, chgTxt, dailyTxt, ytdTxt, navTxt, trendTxt, mktTxt] = await Promise.all([
+      totalRes.text(), chgRes.text(), dailyRes.ok ? dailyRes.text() : Promise.resolve(''),
+      ytdRes.ok ? ytdRes.text() : Promise.resolve(''),
+      navRes.ok ? navRes.text() : Promise.resolve(''),
+      trendRes.ok ? trendRes.text() : Promise.resolve(''),
+      mktRes.ok ? mktRes.text() : Promise.resolve('')
+    ]);
+
+    const total   = parseCSV(totalTxt);
+    const yearChg = parseCSV(chgTxt);
+    const fgScore = fgResult instanceof Error ? null : fgResult;
+
+    // VIX/SPY 從市場數據
+    let vixVal = null, spyData = null;
+    if (mktTxt) {
+      const mktData = parseCSV(mktTxt);
+      if (mktData.length > 1) {
+        const last = mktData[mktData.length - 1];
+        vixVal = num(last[1]) || null;
+        const spyRows = mktData.slice(1).map(r => ({
+          date: (r[0]||'').trim(), spy: num(r[2])
+        })).filter(r => r.spy);
+        if (spyRows.length > 0) {
+          const spyBase = spyRows[0].spy;
+          const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+          spyData = ml.map((_, i) => {
+            const row = [...spyRows].reverse().find(r => {
+              const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i;
+            });
+            return row ? parseFloat(((row.spy/spyBase-1)*100).toFixed(2)) : null;
+          });
+        }
+      }
+    }
 
     // 每日股價：{ 代號 -> [{ date, price }] } 按日期排序
     const dailyMap = {}; // { 代號: [{date, price}] }
-    if (dailyRes.ok) {
-      const dailyRows = parseCSV(await dailyRes.text());
+    if (dailyTxt) {
+      const dailyRows = parseCSV(dailyTxt);
       for (const r of dailyRows) {
         const date = (r[0]||'').trim();
         const code = (r[1]||'').trim();
@@ -1041,8 +1045,8 @@ async function loadAll() {
 
     // 年初股價：{ 代號 -> 年初價格 }
     const ytdMap = {};
-    if (ytdRes.ok) {
-      const ytdRows = parseCSV(await ytdRes.text());
+    if (ytdTxt) {
+      const ytdRows = parseCSV(ytdTxt);
       for (let i = 1; i < ytdRows.length; i++) {
         const code  = (ytdRows[i][0]||'').trim();
         const price = num(ytdRows[i][1]);
@@ -1381,77 +1385,50 @@ async function loadAll() {
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
 
-    // ── 讀取基金淨值 tab ──
-    let fundNavMap = {}; // { 基金名: { chgPct, ytdPct } }
+    // ── 讀取基金淨值 ──
+    let fundNavMap = {};
     try {
-      const navRes = await fetch(csvUrl('基金淨值'));
-      // 基金名稱正規化（基金淨值tab用全稱，總表用簡稱）
-    const fundNameMap = {
-      '安聯台灣科技': '安聯科技',
-      '安聯台灣大壩': '安聯大壩',
-    };
-
-    if (navRes.ok) {
-        const navRows = parseCSV(await navRes.text());
-        // row0 = header, row1+ = data
-        // 每個基金只取最新一筆（最後一筆）
-        const latestMap = {}; // { 基金名: { 淨值, 漲跌% } }
-        const firstMap  = {}; // { 基金名: 年初淨值 }
-        const thisYear  = new Date().getFullYear();
-
+      const fundNameMap = { '安聯台灣科技': '安聯科技', '安聯台灣大壩': '安聯大壩' };
+      if (navTxt) {
+        const navRows = parseCSV(navTxt);
+        const latestMap = {}, firstMap = {};
+        const thisYear = new Date().getFullYear();
         for (let i = 1; i < navRows.length; i++) {
           const r = navRows[i];
-          const rawName = (r[0]||'').trim();
-          const name  = fundNameMap[rawName] || rawName;
-          const date  = (r[1]||'').trim();
-          const nav   = num(r[2]);
-          const chgP  = r[4]; // E欄 漲跌%
-
+          const name = fundNameMap[(r[0]||'').trim()] || (r[0]||'').trim();
+          const date = (r[1]||'').trim();
+          const nav  = num(r[2]);
+          const chgP = r[4];
           if (!name || !nav) continue;
-
-          // 記錄最新（覆蓋）
           latestMap[name] = { nav, chgP };
-
-          // 記錄年初（第一筆符合今年的）
           const yr = parseInt((date||'').split('/')[0]);
-          if (yr === thisYear && !firstMap[name]) {
-            firstMap[name] = nav;
-          }
+          if (yr === thisYear && !firstMap[name]) firstMap[name] = nav;
         }
-
-        // 算今年以來
         for (const name of Object.keys(latestMap)) {
-          const cur   = latestMap[name].nav;
+          const cur = latestMap[name].nav;
           const start = firstMap[name];
-          // 如果只有一筆（start==cur），ytdPct設null
           const ytdPct = (start && start !== cur) ? (cur - start) / start * 100 : null;
-          // chgP 已是百分比字串如 "1.60%"，直接用num取數字
-          const chgPct = num(latestMap[name].chgP);
-          fundNavMap[name] = { chgPct, ytdPct, curNav: latestMap[name].nav };
+          fundNavMap[name] = { chgPct: num(latestMap[name].chgP), ytdPct, curNav: cur };
         }
       }
     } catch(e) { console.log('基金淨值讀取失敗', e); }
 
-    // 基金年初淨值（同時支援簡稱和全稱）
     const fundYTDBase = {
-      '統一奔騰': 418.62,
-      '統一黑馬': 352.68,
-      '安聯科技': 387.53,
-      '安聯台灣科技': 387.53,
-      '安聯大壩': 164.4,
-      '安聯台灣大壩': 164.4,
+      '統一奔騰': 418.62, '統一黑馬': 352.68,
+      '安聯科技': 387.53, '安聯台灣科技': 387.53,
+      '安聯大壩': 164.4,  '安聯台灣大壩': 164.4,
     };
+
+    // ── 每日淨值趨勢 ──
     let trendNavRows = null;
     try {
-      const trendRes = await fetch(csvUrl('每日淨值'));
-      if (trendRes.ok) {
-        const trendData = parseCSV(await trendRes.text());
+      if (trendTxt) {
+        const trendData = parseCSV(trendTxt);
         if (trendData.length > 1) {
-          // 每天只取一筆（按日期去重，取最後一筆）
           const dateMap = {};
           for (const r of trendData) {
-            const dateStr = (r[0]||'').trim().split(' ')[0]; // 只取日期部分
-            const ytd = num(r[6]); // G欄 YTD
+            const dateStr = (r[0]||'').trim().split(' ')[0];
+            const ytd = num(r[6]);
             if (dateStr && ytd != null) dateMap[dateStr] = ytd;
           }
           trendNavRows = Object.entries(dateMap)
