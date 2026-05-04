@@ -428,7 +428,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <div class="card">
       <div class="section-title" style="margin-bottom:14px;">IB 投組淨值</div>
       <div style="font-family:'DM Serif Display',serif; font-size:2rem; letter-spacing:-1px; background:linear-gradient(135deg,#e8eaf0,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;" id="ibNetBig">--</div>
-      <div style="font-size:12px; color:var(--muted); margin-top:6px;">IB 槓桿 <span id="ibLevBig">--</span></div>
+      <div style="font-size:12px; color:var(--muted); margin-top:6px;">IB 槓桿 <span id="ibLevBig">--</span> <span style="color:rgba(148,163,184,0.4)">·</span> <span style="color:var(--muted)">利率 5.14%</span></div>
       <div id="levPillBig" style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">● 讀取中</div>
       <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:20px; flex-wrap:wrap;">
         <div>
@@ -453,7 +453,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <div class="card">
       <div class="section-title" style="margin-bottom:14px;">台灣 ETF 市值</div>
       <div style="font-family:'DM Serif Display',serif; font-size:2rem; letter-spacing:-1px; background:linear-gradient(135deg,#e8eaf0,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;" id="twETFBig">--</div>
-      <div style="font-size:12px; color:var(--muted); margin-top:6px;">台灣質借 <span id="twPledgeBig">--</span></div>
+      <div style="font-size:12px; color:var(--muted); margin-top:6px;">台灣質借 <span id="twPledgeBig">--</span> <span style="color:rgba(148,163,184,0.4)">·</span> <span style="color:var(--muted)">利率 2.89%</span></div>
       <div id="pledgePillBig" style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">● 讀取中</div>
       <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:20px; flex-wrap:wrap;">
         <div>
@@ -469,9 +469,14 @@ tr:hover td { background: rgba(96,165,250,0.03); }
           <div id="maintainPillSub" style="margin-top:4px; display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:16px; font-size:11px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">--</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">追繳緩衝區</div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">追繳緩衝（ETF）</div>
           <div style="font-size:1.1rem;font-weight:600;" id="marginBufferBig">--</div>
-          <div style="font-size:10px;color:var(--muted);">跌破追繳線</div>
+          <div style="font-size:10px;color:var(--muted);">追繳線 140%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">追繳緩衝（含基金）</div>
+          <div style="font-size:1.1rem;font-weight:600;" id="marginBufferFBig">--</div>
+          <div style="font-size:10px;color:var(--muted);">追繳線 140%</div>
         </div>
       </div>
     </div>
@@ -1092,6 +1097,13 @@ async function loadAll() {
       bufferEl.textContent = buffer.toFixed(1) + '%';
       bufferEl.style.color = buffer < 20 ? 'var(--red)' : buffer < 40 ? 'var(--yellow)' : 'var(--green)';
     }
+    // 含基金追繳緩衝區
+    const bufferFEl = document.getElementById('marginBufferFBig');
+    if (bufferFEl && maintainFR) {
+      const bufferF = (maintainFR - MARGIN_CALL) / maintainFR * 100;
+      bufferFEl.textContent = bufferF.toFixed(1) + '%';
+      bufferFEl.style.color = bufferF < 20 ? 'var(--red)' : bufferF < 40 ? 'var(--yellow)' : 'var(--green)';
+    }
 
     // 台灣基金
     document.getElementById('twFundBig').textContent = twFundV ? 'NT$'+fmt(twFundV) : '--';
@@ -1248,27 +1260,35 @@ async function loadAll() {
     buildTrendChart(trendNavRows, ytd26, tgt26);
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
+    const fundLinks = {
+      '統一奔騰': 'https://fund.cnyes.com/search/#keyword=統一奔騰',
+      '統一黑馬': 'https://fund.cnyes.com/search/#keyword=統一黑馬',
+      '安聯科技': 'https://fund.cnyes.com/search/#keyword=安聯台灣科技',
+      '安聯大壩': 'https://fund.cnyes.com/search/#keyword=安聯台灣大壩',
+    };
     document.getElementById('fundTable').innerHTML = fundList.map(s => {
       const nav = fundNavMap[s.name] || {};
-      // 今日漲跌從基金淨值tab
       const chgCell = nav.chgPct != null
-        ? `<td class="${nav.chgPct>=0?'up':'down'}">${nav.chgPct>=0?'▲':'▼'} ${Math.abs(nav.chgPct).toFixed(2)}%</td>`
+        ? `<td class="${nav.chgPct>=0?'up':'down'}">${nav.chgPct>=0?'▲':'▼'} ${Math.abs(nav.chgPct).toFixed(1)}%</td>`
         : `<td style="color:var(--muted)">--</td>`;
-      // 今年以來：用基金淨值tab算，或用年初淨值
       let ytdPct = nav.ytdPct;
       if (ytdPct == null && fundYTDBase[s.name]) {
-        const curNav = fundNavMap[s.name]?.curNav;
+        const curNav = nav.curNav;
         if (curNav) ytdPct = (curNav - fundYTDBase[s.name]) / fundYTDBase[s.name] * 100;
       }
-      const ytdCell = ytdPct != null
+      const ytdCellHtml = ytdPct != null
         ? `<td class="${ytdPct>=0?'up':'down'}">${ytdPct>=0?'+':''}${ytdPct.toFixed(0)}%</td>`
         : `<td style="color:var(--muted)">--</td>`;
+      const link = fundLinks[s.name] || 'https://fund.cnyes.com';
+      const pctVal = parseFloat(s.pct) || 0;
       return `<tr>
-        <td class="ticker fund">${s.name}</td>
+        <td><a href="${link}" target="_blank" style="color:var(--purple);font-weight:600;text-decoration:none;">${s.name} ↗</a></td>
         <td>${s.val||'--'}</td>
         ${chgCell}
-        ${ytdCell}
-        <td>${s.pct||'--'}</td>
+        ${ytdCellHtml}
+        <td>${s.pct||'--'}
+          <div class="pbar-wrap"><div class="pbar-fill" style="width:${pctVal}%;background:var(--purple)"></div></div>
+        </td>
       </tr>`;
     }).join('') || '<tr><td colspan="5" style="color:var(--muted)">無資料</td></tr>';
 
@@ -1288,10 +1308,12 @@ async function loadAll() {
 }
 
 function reloadAll() {
-  document.getElementById('overlay').classList.remove('hide');
-  document.getElementById('overlay').style.opacity = '1';
-  document.getElementById('overlay').style.pointerEvents = 'all';
-  loadAll();
+  const overlay = document.getElementById('overlay');
+  overlay.style.opacity = '1';
+  overlay.style.pointerEvents = 'all';
+  overlay.classList.remove('hide');
+  // 短暫延遲讓 overlay 顯示後再執行
+  setTimeout(() => loadAll(), 100);
 }
 
 loadAll();
