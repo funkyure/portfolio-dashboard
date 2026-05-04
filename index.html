@@ -1261,10 +1261,10 @@ async function loadAll() {
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
     const fundLinks = {
-      '統一奔騰': 'https://fund.cnyes.com/search/#keyword=統一奔騰',
-      '統一黑馬': 'https://fund.cnyes.com/search/#keyword=統一黑馬',
-      '安聯科技': 'https://fund.cnyes.com/search/#keyword=安聯台灣科技',
-      '安聯大壩': 'https://fund.cnyes.com/search/#keyword=安聯台灣大壩',
+      '統一奔騰': 'https://fund.cnyes.com/detail/%E7%B5%B1%E4%B8%80%E5%A5%94%E9%A8%B0%E5%9F%BA%E9%87%91/A09012/',
+      '統一黑馬': 'https://fund.cnyes.com/detail/%E7%B5%B1%E4%B8%80%E9%BB%91%E9%A6%AC%E5%9F%BA%E9%87%91/A09003/',
+      '安聯科技': 'https://fund.cnyes.com/detail/%E5%AE%89%E8%81%AF%E5%8F%B0%E7%81%A3%E7%A7%91%E6%8A%80%E5%9F%BA%E9%87%91/A36004/',
+      '安聯大壩': 'https://fund.cnyes.com/detail/%E5%AE%89%E8%81%AF%E5%8F%B0%E7%81%A3%E5%A4%A7%E5%A3%A9%E5%9F%BA%E9%87%91-A%E9%A1%9E%E5%9E%8B-%E6%96%B0%E8%87%BA%E5%B9%A3/A36001/',
     };
     document.getElementById('fundTable').innerHTML = fundList.map(s => {
       const nav = fundNavMap[s.name] || {};
@@ -1308,6 +1308,10 @@ async function loadAll() {
 }
 
 function reloadAll() {
+  // 先銷毀現有圖表，避免重複建立報錯
+  if (allocChart)  { allocChart.destroy();  allocChart  = null; }
+  if (yearlyChart) { yearlyChart.destroy(); yearlyChart = null; }
+  if (trendChart)  { trendChart.destroy();  trendChart  = null; }
   const overlay = document.getElementById('overlay');
   overlay.style.display = 'flex';
   overlay.style.opacity = '1';
