@@ -295,7 +295,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
         <div class="card-label">2026 YTD 報酬（累計）</div>
         <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; letter-spacing:-1.5px; color:var(--green); margin-top:4px;" id="ytdBig">--</div>
         <div style="font-size:13px; color:var(--muted); margin-top:6px;">
-          NT$ &nbsp;·&nbsp; 達成率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span>（目標 <span id="ytdTgtBig">--</span>）
+          NT$ &nbsp;·&nbsp; 報酬率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span> &nbsp;·&nbsp; 達成率 <span id="ytdAchieveBig" style="color:var(--blue);">--</span>（目標 <span id="ytdTgtBig">--</span>）
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px; min-width:200px; padding-top:4px;">
@@ -943,8 +943,15 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
       scales: {
         y:  { position: 'left', ticks: { callback: v => 'NT$'+v+'M' } },
         y2: { position: 'right', display: showY2,
-              ticks: { callback: v => v.toFixed(0)+'%', color: 'rgba(248,113,113,0.7)' },
-              grid: { drawOnChartArea: false } },
+              ticks: {
+                callback: v => v.toFixed(0)+'%',
+                color: 'rgba(248,113,113,0.7)',
+                maxTicksLimit: 6
+              },
+              grid: { drawOnChartArea: false },
+              // 加上固定間距讓線條分開
+              suggestedMin: -10,
+              suggestedMax: 60 },
         x:  { grid: { display: false } }
       },
       plugins: {
@@ -1332,9 +1339,17 @@ async function loadAll() {
     const ibkr26 = num(yearChg[3][1]);
     const tw26   = num(yearChg[3][2]);
     const etf26  = num(yearChg[3][3]);
+    // 報酬率 = ytd26 / (grandTotal - ytd26)
+    const initVal = grandTotal - (ytd26||0);
+    const myReturnPct = (initVal > 0 && ytd26) ? (ytd26 / initVal * 100) : null;
+
     document.getElementById('ytdBig').textContent = ytd26 ? fmtSign(ytd26) : '--';
     document.getElementById('ytdBig').style.color = ytd26>=0?'var(--green)':'var(--red)';
-    document.getElementById('ytdRateBig').textContent = ytd26&&tgt26 ? (ytd26/tgt26*100).toFixed(0)+'%' : '--';
+    // 達成率改顯示報酬率
+    const rateEl = document.getElementById('ytdRateBig');
+    if (rateEl) rateEl.textContent = myReturnPct ? myReturnPct.toFixed(1)+'%' : '--';
+    const achieveEl = document.getElementById('ytdAchieveBig');
+    if (achieveEl) achieveEl.textContent = ytd26&&tgt26 ? (ytd26/tgt26*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTgtBig').textContent = tgt26 ? 'NT$'+fmt(tgt26) : '--';
     const c = (id, val) => {
       const el = document.getElementById(id);
@@ -1429,30 +1444,41 @@ async function loadAll() {
             .sort((a,b) => a[0].localeCompare(b[0]))
             .map(([date, ytd]) => ({ date, ytd }));
 
-          // ATH 和回撤
-          const allYtd = trendNavRows.map(r => r.ytd).filter(v => v != null);
-          if (allYtd.length > 0) {
-            const ath = Math.max(...allYtd);
-            const latest = allYtd[allYtd.length - 1];
-            const dd = ath > 0 ? (latest - ath) / ath * 100 : 0;
-            const athEl = document.getElementById('athVal');
-            const ddEl  = document.getElementById('ddVal');
-            const athCardEl = document.getElementById('athCardVal');
-            const ddCardEl  = document.getElementById('ddCardVal');
-            if (athEl) athEl.textContent = 'NT$' + fmt(ath);
-            if (athCardEl) athCardEl.textContent = 'NT$' + fmt(ath);
-            if (ddEl) {
-              ddEl.textContent = dd.toFixed(1) + '%';
-              ddEl.style.color = dd < -10 ? 'var(--red)' : dd < 0 ? 'var(--yellow)' : 'var(--green)';
-            }
-            if (ddCardEl) {
-              ddCardEl.textContent = dd.toFixed(1) + '%';
-              ddCardEl.style.color = dd < -10 ? 'var(--red)' : dd < 0 ? 'var(--yellow)' : 'var(--green)';
-            }
-          }
+          // ATH 用B欄總資產，不用YTD
+          const allTotal = trendData.slice(1).map(r => num(r[1])).filter(v => v && v > 0);
+          const ath = allTotal.length > 0 ? Math.max(...allTotal) : grandTotal;
+          const dd = ath > 0 ? (grandTotal - ath) / ath * 100 : 0;
+
+          const athEl = document.getElementById('athVal');
+          const ddEl  = document.getElementById('ddVal');
+          const athCardEl = document.getElementById('athCardVal');
+          const ddCardEl  = document.getElementById('ddCardVal');
+          if (athEl) athEl.textContent = 'NT$' + fmt(ath);
+          if (athCardEl) athCardEl.textContent = 'NT$' + fmt(ath);
+          const ddColor = dd < -10 ? 'var(--red)' : dd < 0 ? 'var(--yellow)' : 'var(--green)';
+          const ddText = allTotal.length < 2 ? '累積中' : dd.toFixed(1)+'%';
+          const ddCol2 = allTotal.length < 2 ? 'var(--muted)' : ddColor;
+          if (ddEl)     { ddEl.textContent = ddText;     ddEl.style.color = ddCol2; }
+          if (ddCardEl) { ddCardEl.textContent = ddText; ddCardEl.style.color = ddCol2; }
         }
       }
     } catch(e) { console.log('每日淨值讀取失敗', e); }
+
+    // ATH 從資產變化 C11 讀取（row10, col2）
+    const ytdATH = num(yearChg[10]?.[2]);
+    if (ytdATH && ytd26 != null) {
+      const dd = (ytd26 - ytdATH) / Math.abs(ytdATH) * 100;
+      const ddText  = dd.toFixed(1) + '%';
+      const ddColor = dd < -10 ? 'var(--red)' : dd < 0 ? 'var(--yellow)' : 'var(--green)';
+      ['athVal','athCardVal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = 'NT$' + fmt(ytdATH);
+      });
+      ['ddVal','ddCardVal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = ddText; el.style.color = ddColor; }
+      });
+    }
 
     // 報酬率回推：每日淨值的 YTD / (總資產 - YTD) = 報酬率
     let myReturnData = null;
@@ -1486,6 +1512,7 @@ async function loadAll() {
     }
 
     buildTrendChart(trendNavRows, ytd26, tgt26, spyData, myReturnData);
+    console.log('spyData:', spyData, 'vixVal:', vixVal, 'mktTxt長度:', mktTxt?.length);
 
     // ── VIX ──
     const vixEl = document.getElementById('vixVal');
