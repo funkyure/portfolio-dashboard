@@ -971,7 +971,25 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
   });
 }
 
-// Fear & Greed（直接抓CNN）
+// 台股ETF今日漲跌：從證交所即時API抓（z=現價, y=昨收）
+async function fetchTWStockChange(codes) {
+  try {
+    const query = codes.map(c => `tse_${c}.tw`).join('|');
+    const r = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${query}&json=1&delay=0`);
+    if (!r.ok) return {};
+    const j = await r.json();
+    const result = {};
+    (j.msgArray || []).forEach(s => {
+      const code = s.c;
+      const price = parseFloat(s.z);
+      const prev  = parseFloat(s.y);
+      if (code && !isNaN(price) && !isNaN(prev) && prev > 0) {
+        result[code] = (price - prev) / prev * 100;
+      }
+    });
+    return result;
+  } catch(e) { return {}; }
+}
 async function fetchFearGreed() {
   try {
     const r = await fetch('https://production.dataviz.cnn.io/index/fearandgreed/graphdata');
@@ -1046,23 +1064,35 @@ async function loadAll() {
       }
     } catch(e) { console.log('SPY fetch失敗:', e); }
 
-    // 備援：從Google Sheet市場數據補充
+    // SPY 月線（月底收盤，基準用2025/12收盤678.06）
+    const SPY_MONTHLY = {
+      0: 690.09,  // 1月
+      1: 684.12,  // 2月
+      2: 648.57,  // 3月
+      3: 718.66,  // 4月
+    };
+    const SPY_BASE = 678.06; // 2025/12月底基準
+    spyData = new Array(12).fill(null);
+    Object.entries(SPY_MONTHLY).forEach(([m, price]) => {
+      spyData[parseInt(m)] = parseFloat(((price / SPY_BASE - 1) * 100).toFixed(2));
+    });
+    // 5月用Google Sheet市場數據補（之後每月自動更新）
     if (mktTxt) {
-      const mktData = parseCSV(mktTxt);
-      if (mktData.length > 1) {
-        const last = mktData[mktData.length - 1];
-        vixVal = vixVal || num(last[1]) || null;
-        if (!spyData) spyData = new Array(12).fill(null);
-        const SPY_BASE = 681.92;
-        mktData.slice(1).forEach(r => {
-          const dateOnly = (r[0]||'').trim().split(' ')[0];
-          const d = new Date(dateOnly);
-          const spy = num(r[2]);
-          if (!isNaN(d) && spy && d.getFullYear() === now.getFullYear()) {
-            spyData[d.getMonth()] = parseFloat(((spy/SPY_BASE-1)*100).toFixed(2));
-          }
-        });
-      }
+      const mktRows = parseCSV(mktTxt).slice(1);
+      mktRows.forEach(r => {
+        const dateOnly = (r[0]||'').trim().split(' ')[0];
+        const d = new Date(dateOnly);
+        const spy = num(r[2]);
+        if (!isNaN(d) && spy && d.getFullYear() === now.getFullYear()) {
+          spyData[d.getMonth()] = parseFloat(((spy / SPY_BASE - 1) * 100).toFixed(2));
+        }
+      });
+    }
+
+    // 備援VIX從Google Sheet
+    if (!vixVal && mktTxt) {
+      const mktRows = parseCSV(mktTxt);
+      if (mktRows.length > 1) vixVal = num(mktRows[mktRows.length-1][1]) || null;
     }
 
     console.log('spyData:', spyData, 'vixVal:', vixVal);
@@ -1414,15 +1444,21 @@ async function loadAll() {
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
 
+    // 台股ETF即時漲跌
+    const twCodes = etfList.map(s => s.code);
+    const twChangeMap = twCodes.length > 0 ? await fetchTWStockChange(twCodes) : {};
+
     // 台股ETF
     document.getElementById('etfTable').innerHTML = etfList.map(s => {
       const { todayChg, ytdChg } = calcChg(s.code, num(s.price));
+      const liveChg = twChangeMap[s.code];
+      const todayFinal = liveChg != null ? liveChg : todayChg;
       const isLev = leveraged.includes(s.code);
       return `<tr>
         <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code}${isLev?` <span style="color:var(--yellow);font-size:10px;border:1px solid var(--yellow);padding:0 3px;border-radius:3px;">⚡</span>`:''} ↗</a></td>
         <td>${s.val||'--'}</td>
         <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
-        ${changeCell(todayChg)}
+        ${changeCell(todayFinal)}
         ${ytdCell(ytdChg)}
         <td>${s.pct||'--'}
           <div class="pbar-wrap"><div class="pbar-fill" style="width:${parseFloat(s.pct)||0}%;background:var(--yellow)"></div></div>
