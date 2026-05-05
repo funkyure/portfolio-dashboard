@@ -885,20 +885,10 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
   const hwm = validVals.length > 0 ? Math.max(...validVals) : null;
   const hwmData = hwm ? monthLabels.map(() => hwm) : [];
 
-  // S&P500 今年月線（報酬率%）
-  let spyNorm = null;
-  if (spyData && spyData.length > 0) {
-    const base = spyData.find(v => v != null);
-    spyNorm = monthLabels.map((_, i) => {
-      if (spyData[i] == null) return null;
-      return parseFloat(((spyData[i] / base - 1) * 100).toFixed(2));
-    });
-  }
-
   if (trendChart) trendChart.destroy();
   const datasets = [
     {
-      label: '實際報酬',
+      label: '實際報酬(NT$)',
       data: actualData,
       borderColor: '#34d399',
       backgroundColor: 'rgba(52,211,153,0.08)',
@@ -906,7 +896,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
       pointRadius: actualData.map(v => v != null ? 4 : 0),
       pointBackgroundColor: '#34d399',
       pointBorderColor: '#080d14', pointBorderWidth: 2,
-      spanGaps: true
+      spanGaps: true, yAxisID: 'y'
     },
     {
       label: '預算目標',
@@ -914,53 +904,43 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
       borderColor: 'rgba(96,165,250,0.4)',
       borderDash: [6, 4],
       backgroundColor: 'transparent',
-      tension: 0, pointRadius: 0, spanGaps: true
+      tension: 0, pointRadius: 0, spanGaps: true, yAxisID: 'y'
     }
   ];
   if (hwm) datasets.push({
-    label: '高水位 (HWM)',
+    label: '高水位(HWM)',
     data: hwmData,
     borderColor: '#fbbf24',
     borderDash: [4, 3],
     backgroundColor: 'transparent',
-    tension: 0, pointRadius: 0, spanGaps: true
+    tension: 0, pointRadius: 0, spanGaps: true, yAxisID: 'y'
   });
-  if (spyNorm) datasets.push({
-    label: 'S&P500（對齊）',
-    data: spyNorm,
-    borderColor: 'rgba(248,113,113,0.7)',
-    borderDash: [2, 2],
-    backgroundColor: 'transparent',
-    tension: 0.3, pointRadius: 0, spanGaps: true
-  });
-
   if (myReturnData) datasets.push({
     label: '我的報酬率',
     data: myReturnData,
-    borderColor: '#34d399',
+    borderColor: 'rgba(52,211,153,0.8)',
     borderDash: [3, 2],
     backgroundColor: 'transparent',
-    tension: 0.3, pointRadius: 0, spanGaps: true,
-    yAxisID: 'y2'
+    tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
   });
   if (spyData) datasets.push({
-    label: 'S&P500 報酬率',
+    label: 'S&P500',
     data: spyData,
     borderColor: 'rgba(248,113,113,0.8)',
     borderDash: [3, 3],
     backgroundColor: 'transparent',
-    tension: 0.3, pointRadius: 0, spanGaps: true,
-    yAxisID: 'y2'
+    tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
   });
 
+  const showY2 = !!(spyData || myReturnData);
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: { labels: monthLabels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y:  { beginAtZero: false, position: 'left',  ticks: { callback: v => 'NT$'+v+'M' } },
-        y2: { beginAtZero: false, position: 'right', display: !!(spyData || myReturnData),
+        y:  { position: 'left', ticks: { callback: v => 'NT$'+v+'M' } },
+        y2: { position: 'right', display: showY2,
               ticks: { callback: v => v.toFixed(0)+'%', color: 'rgba(248,113,113,0.7)' },
               grid: { drawOnChartArea: false } },
         x:  { grid: { display: false } }
@@ -968,7 +948,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
       plugins: {
         legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
         tooltip: { callbacks: { label: ctx => {
-          if (ctx.dataset.yAxisID === 'y2') return ` S&P500: ${ctx.parsed.y.toFixed(1)}%`;
+          if (ctx.dataset.yAxisID === 'y2') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
           return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
         }}}
       }
