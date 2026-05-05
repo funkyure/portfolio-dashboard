@@ -966,7 +966,21 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
         x:  { grid: { display: false } }
       },
       plugins: {
-        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+        legend: {
+          position: 'top', align: 'end',
+          labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 },
+            generateLabels: chart => chart.data.datasets.map((ds, i) => ({
+              text: ds.yAxisID === 'y2'
+                ? `%: ${ds.label}`
+                : `NT$: ${ds.label}`,
+              fillStyle: ds.borderColor,
+              strokeStyle: ds.borderColor,
+              lineWidth: 2,
+              hidden: false,
+              datasetIndex: i
+            }))
+          }
+        },
         tooltip: { callbacks: { label: ctx => {
           if (ctx.dataset.yAxisID === 'y2') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
           return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
@@ -976,27 +990,25 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   });
 }
 
-// 台股ETF今日漲跌：證交所OpenAPI（支援CORS）
+// 台股ETF今日漲跌：Yahoo Finance
 async function fetchTWStockChange(codes) {
-  try {
-    const today = new Date();
-    const dateStr = today.getFullYear() +
-      String(today.getMonth()+1).padStart(2,'0') +
-      String(today.getDate()).padStart(2,'0');
-    const r = await fetch(`https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL`);
-    if (!r.ok) return {};
-    const data = await r.json();
-    const result = {};
-    data.forEach(s => {
-      if (codes.includes(s.Code)) {
-        const close = parseFloat(s.ClosingPrice);
-        const open  = parseFloat(s.OpeningPrice);
-        const prev  = close - parseFloat(s.Change || 0);
-        if (prev > 0) result[s.Code] = parseFloat(s.Change || 0) / prev * 100;
-      }
-    });
-    return result;
-  } catch(e) { console.log('台股API失敗:', e); return {}; }
+  const result = {};
+  // 上市ETF用.TW，上櫃用.TWO
+  const otcCodes = ['00981A']; // 上櫃
+  await Promise.all(codes.map(async code => {
+    try {
+      const suffix = otcCodes.includes(code) ? '.TWO' : '.TW';
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=2d`);
+      if (!r.ok) return;
+      const j = await r.json();
+      const meta = j?.chart?.result?.[0]?.meta;
+      if (!meta) return;
+      const cur  = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose;
+      if (cur && prev && prev > 0) result[code] = (cur - prev) / prev * 100;
+    } catch {}
+  }));
+  return result;
 }
 async function fetchFearGreed() {
   try {
