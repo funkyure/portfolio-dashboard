@@ -1415,7 +1415,8 @@ async function loadAll() {
     const etf26  = num(yearChg[3][3]);
     // 報酬率 = ytd26 / (grandTotal - ytd26)
     const initVal = grandTotal - (ytd26||0);
-    const myReturnPct = (initVal > 0 && ytd26) ? (ytd26 / initVal * 100) : null;
+    const myReturnPct    = (initVal > 0 && ytd26) ? (ytd26 / initVal * 100) : null;
+    const myReturnNetPct = (netAsset > 0 && ytd26) ? (ytd26 / netAsset * 100) : null;
 
     document.getElementById('ytdBig').textContent = ytd26 ? fmtSign(ytd26) : '--';
     document.getElementById('ytdBig').style.color = ytd26>=0?'var(--green)':'var(--red)';
@@ -1560,10 +1561,7 @@ async function loadAll() {
       });
     }
 
-    // 報酬率回推：兩種分母
-    const initVal = grandTotal - (ytd26||0);
-    const myReturnPct = (initVal > 0 && ytd26) ? (ytd26 / initVal * 100) : null;
-    const myReturnNetPct = (netAsset > 0 && ytd26) ? (ytd26 / netAsset * 100) : null;
+    // 報酬率回推：兩種分母（已在上方宣告）
 
     // 趨勢圖報酬率（線性推估）
     function calcReturnLine(totalReturn) {
