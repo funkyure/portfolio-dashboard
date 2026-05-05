@@ -293,9 +293,12 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
       <div>
         <div class="card-label">2026 YTD 報酬（累計）</div>
-        <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; letter-spacing:-1.5px; color:var(--green); margin-top:4px;" id="ytdBig">--</div>
+        <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+          <span style="font-size:1rem; color:var(--muted); font-weight:400;">NT$</span>
+          <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; letter-spacing:-1.5px; color:var(--green);" id="ytdBig">--</div>
+        </div>
         <div style="font-size:13px; color:var(--muted); margin-top:6px;">
-          NT$ &nbsp;·&nbsp; 報酬率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span> &nbsp;·&nbsp; 達成率 <span id="ytdAchieveBig" style="color:var(--blue);">--</span>（目標 <span id="ytdTgtBig">--</span>）
+          報酬率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span> &nbsp;·&nbsp; 達成率 <span id="ytdAchieveBig" style="color:var(--blue);">--</span>（目標 <span id="ytdTgtBig">--</span>）
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px; min-width:200px; padding-top:4px;">
@@ -1015,9 +1018,12 @@ async function loadAll() {
         const last = mktData[mktData.length - 1];
         vixVal = num(last[1]) || null;
         const SPY_BASE = 681.92; // 2026/1/2 年初價格
-        const spyRows = mktData.slice(1).map(r => ({
-          date: (r[0]||'').trim(), spy: num(r[2])
-        })).filter(r => r.spy);
+        const spyRows = mktData.slice(1).map(r => {
+          const raw = (r[0]||'').trim();
+          // 處理 "2026/5/4 下午 11:56" 格式，只取日期部分
+          const dateOnly = raw.split(' ')[0];
+          return { date: dateOnly, spy: num(r[2]) };
+        }).filter(r => r.spy && r.date);
         if (spyRows.length > 0) {
           const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
           spyData = ml.map((_, i) => {
@@ -1347,7 +1353,7 @@ async function loadAll() {
     document.getElementById('ytdBig').style.color = ytd26>=0?'var(--green)':'var(--red)';
     // 達成率改顯示報酬率
     const rateEl = document.getElementById('ytdRateBig');
-    if (rateEl) rateEl.textContent = myReturnPct ? myReturnPct.toFixed(1)+'%' : '--';
+    if (rateEl) rateEl.textContent = myReturnPct ? (myReturnPct >= 0 ? '+' : '') + myReturnPct.toFixed(1)+'%' : '--';
     const achieveEl = document.getElementById('ytdAchieveBig');
     if (achieveEl) achieveEl.textContent = ytd26&&tgt26 ? (ytd26/tgt26*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTgtBig').textContent = tgt26 ? 'NT$'+fmt(tgt26) : '--';
@@ -1512,7 +1518,8 @@ async function loadAll() {
     }
 
     buildTrendChart(trendNavRows, ytd26, tgt26, spyData, myReturnData);
-    console.log('spyData:', spyData, 'vixVal:', vixVal, 'mktTxt長度:', mktTxt?.length);
+    console.log('spyData:', spyData, 'vixVal:', vixVal);
+    console.log('mktData筆數:', mktTxt ? parseCSV(mktTxt).length : 0);
 
     // ── VIX ──
     const vixEl = document.getElementById('vixVal');
