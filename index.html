@@ -955,17 +955,14 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y:  { position: 'left', ticks: { callback: v => 'NT$'+v+'M' } },
+        y:  { position: 'left',
+              title: { display: true, text: 'YTD損益 (NT$)', color: 'rgba(52,211,153,0.7)', font: { size: 11 } },
+              ticks: { callback: v => 'NT$'+v+'M' } },
         y2: { position: 'right', display: showY2,
-              ticks: {
-                callback: v => v.toFixed(0)+'%',
-                color: 'rgba(248,113,113,0.7)',
-                maxTicksLimit: 6
-              },
+              title: { display: true, text: '報酬率 (%)', color: 'rgba(248,113,113,0.7)', font: { size: 11 } },
+              ticks: { callback: v => v.toFixed(0)+'%', color: 'rgba(148,163,184,0.7)', maxTicksLimit: 6 },
               grid: { drawOnChartArea: false },
-              // 加上固定間距讓線條分開
-              suggestedMin: -10,
-              suggestedMax: 60 },
+              suggestedMin: -10, suggestedMax: 60 },
         x:  { grid: { display: false } }
       },
       plugins: {
@@ -979,24 +976,27 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   });
 }
 
-// 台股ETF今日漲跌：從證交所即時API抓（z=現價, y=昨收）
+// 台股ETF今日漲跌：證交所OpenAPI（支援CORS）
 async function fetchTWStockChange(codes) {
   try {
-    const query = codes.map(c => `tse_${c}.tw`).join('|');
-    const r = await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${query}&json=1&delay=0`);
+    const today = new Date();
+    const dateStr = today.getFullYear() +
+      String(today.getMonth()+1).padStart(2,'0') +
+      String(today.getDate()).padStart(2,'0');
+    const r = await fetch(`https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL`);
     if (!r.ok) return {};
-    const j = await r.json();
+    const data = await r.json();
     const result = {};
-    (j.msgArray || []).forEach(s => {
-      const code = s.c;
-      const price = parseFloat(s.z);
-      const prev  = parseFloat(s.y);
-      if (code && !isNaN(price) && !isNaN(prev) && prev > 0) {
-        result[code] = (price - prev) / prev * 100;
+    data.forEach(s => {
+      if (codes.includes(s.Code)) {
+        const close = parseFloat(s.ClosingPrice);
+        const open  = parseFloat(s.OpeningPrice);
+        const prev  = close - parseFloat(s.Change || 0);
+        if (prev > 0) result[s.Code] = parseFloat(s.Change || 0) / prev * 100;
       }
     });
     return result;
-  } catch(e) { return {}; }
+  } catch(e) { console.log('台股API失敗:', e); return {}; }
 }
 async function fetchFearGreed() {
   try {
