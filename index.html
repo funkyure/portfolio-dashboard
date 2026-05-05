@@ -928,16 +928,19 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
     backgroundColor: 'transparent',
     tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
   });
-  if (spyData) datasets.push({
+  if (spyData && spyData.some(v => v != null)) datasets.push({
     label: 'S&P500',
     data: spyData,
-    borderColor: 'rgba(248,113,113,0.8)',
+    borderColor: 'rgba(248,113,113,0.9)',
     borderDash: [3, 3],
     backgroundColor: 'transparent',
-    tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
+    tension: 0.3,
+    pointRadius: spyData.map(v => v != null ? 6 : 0),
+    pointBackgroundColor: 'rgba(248,113,113,0.9)',
+    spanGaps: true, yAxisID: 'y2'
   });
 
-  const showY2 = !!(spyData || myReturnData);
+  const showY2 = !!(myReturnData || (spyData && spyData.some(v => v != null)));
   trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'line',
     data: { labels: monthLabels, datasets },
@@ -1010,31 +1013,58 @@ async function loadAll() {
     const yearChg = parseCSV(chgTxt);
     const fgScore = fgResult instanceof Error ? null : fgResult;
 
-    // VIX/SPY 從市場數據
-    let vixVal = null, spyData = null;
+    // VIX 直接從Yahoo抓，備援從Google Sheet
+    let vixVal = null;
+    try {
+      const vixRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d');
+      if (vixRes.ok) {
+        const vixJson = await vixRes.json();
+        vixVal = vixJson?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+      }
+    } catch(e) { console.log('VIX fetch失敗:', e); }
+
+    let spyData = null;
+    try {
+      const spyRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y');
+      if (spyRes.ok) {
+        const spyJson = await spyRes.json();
+        const closes = spyJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+        const timestamps = spyJson?.chart?.result?.[0]?.timestamp;
+        if (closes && timestamps) {
+          const SPY_BASE = 681.92;
+          const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+          spyData = new Array(12).fill(null);
+          for (let i = 0; i < timestamps.length; i++) {
+            const d = new Date(timestamps[i] * 1000);
+            if (d.getFullYear() === now.getFullYear() && closes[i]) {
+              const month = d.getMonth();
+              spyData[month] = parseFloat(((closes[i] / SPY_BASE - 1) * 100).toFixed(2));
+            }
+          }
+        }
+      }
+    } catch(e) { console.log('SPY fetch失敗:', e); }
+
+    // 備援：從Google Sheet市場數據補充
     if (mktTxt) {
       const mktData = parseCSV(mktTxt);
       if (mktData.length > 1) {
         const last = mktData[mktData.length - 1];
-        vixVal = num(last[1]) || null;
-        const SPY_BASE = 681.92; // 2026/1/2 年初價格
-        const spyRows = mktData.slice(1).map(r => {
-          const raw = (r[0]||'').trim();
-          // 處理 "2026/5/4 下午 11:56" 格式，只取日期部分
-          const dateOnly = raw.split(' ')[0];
-          return { date: dateOnly, spy: num(r[2]) };
-        }).filter(r => r.spy && r.date);
-        if (spyRows.length > 0) {
-          const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-          spyData = ml.map((_, i) => {
-            const row = [...spyRows].reverse().find(r => {
-              const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i;
-            });
-            return row ? parseFloat(((row.spy/SPY_BASE-1)*100).toFixed(2)) : null;
-          });
-        }
+        vixVal = vixVal || num(last[1]) || null;
+        if (!spyData) spyData = new Array(12).fill(null);
+        const SPY_BASE = 681.92;
+        mktData.slice(1).forEach(r => {
+          const dateOnly = (r[0]||'').trim().split(' ')[0];
+          const d = new Date(dateOnly);
+          const spy = num(r[2]);
+          if (!isNaN(d) && spy && d.getFullYear() === now.getFullYear()) {
+            spyData[d.getMonth()] = parseFloat(((spy/SPY_BASE-1)*100).toFixed(2));
+          }
+        });
       }
     }
+
+    console.log('spyData:', spyData, 'vixVal:', vixVal);
 
     // 每日股價：{ 代號 -> [{ date, price }] } 按日期排序
     const dailyMap = {}; // { 代號: [{date, price}] }
