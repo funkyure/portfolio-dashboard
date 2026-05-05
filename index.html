@@ -849,7 +849,7 @@ function buildYearlyChart(y24, y25, y26) {
   });
 }
 
-function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
+function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnNetData) {
   const now = new Date();
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd   = new Date(now.getFullYear(), 11, 31);
@@ -923,8 +923,16 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData) {
   if (myReturnData) datasets.push({
     label: '我的報酬率',
     data: myReturnData,
-    borderColor: 'rgba(52,211,153,0.8)',
+    borderColor: 'rgba(52,211,153,0.9)',
     borderDash: [3, 2],
+    backgroundColor: 'transparent',
+    tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
+  });
+  if (myReturnNetData) datasets.push({
+    label: '投組報酬率（淨資產）',
+    data: myReturnNetData,
+    borderColor: 'rgba(45,212,191,0.9)',
+    borderDash: [5, 3],
     backgroundColor: 'transparent',
     tension: 0.3, pointRadius: 0, spanGaps: true, yAxisID: 'y2'
   });
@@ -1413,7 +1421,7 @@ async function loadAll() {
     document.getElementById('ytdBig').style.color = ytd26>=0?'var(--green)':'var(--red)';
     // 達成率改顯示報酬率
     const rateEl = document.getElementById('ytdRateBig');
-    if (rateEl) rateEl.textContent = myReturnPct ? (myReturnPct >= 0 ? '+' : '') + myReturnPct.toFixed(1)+'%' : '--';
+    if (rateEl) rateEl.textContent = myReturnPct ? (myReturnPct >= 0 ? '+' : '') + myReturnPct.toFixed(1)+'%（總資產）' + (myReturnNetPct ? ' / '+(myReturnNetPct >= 0?'+':'')+myReturnNetPct.toFixed(1)+'%（淨資產）' : '') : '--';
     const achieveEl = document.getElementById('ytdAchieveBig');
     if (achieveEl) achieveEl.textContent = ytd26&&tgt26 ? (ytd26/tgt26*100).toFixed(0)+'%' : '--';
     document.getElementById('ytdTgtBig').textContent = tgt26 ? 'NT$'+fmt(tgt26) : '--';
@@ -1552,38 +1560,32 @@ async function loadAll() {
       });
     }
 
-    // 報酬率回推：每日淨值的 YTD / (總資產 - YTD) = 報酬率
-    let myReturnData = null;
-    if (trendNavRows && trendNavRows.length > 0) {
+    // 報酬率回推：兩種分母
+    const initVal = grandTotal - (ytd26||0);
+    const myReturnPct = (initVal > 0 && ytd26) ? (ytd26 / initVal * 100) : null;
+    const myReturnNetPct = (netAsset > 0 && ytd26) ? (ytd26 / netAsset * 100) : null;
+
+    // 趨勢圖報酬率（線性推估）
+    function calcReturnLine(totalReturn) {
+      if (!totalReturn || !trendNavRows) return null;
       const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-      myReturnData = ml.map((_, i) => {
-        const row = [...trendNavRows].reverse().find(r => {
-          const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i && d <= now;
-        });
-        if (!row) {
-          // 線性推估
-          const todayDays2 = Math.ceil((now - new Date(now.getFullYear(),0,1)) / 86400000);
-          const d = (i+0.5)/12*365;
-          if (d > todayDays2) return null;
-          const initVal = grandTotal - (ytd26||0);
-          return initVal > 0 ? parseFloat(((d/todayDays2)*(ytd26/initVal)*100).toFixed(2)) : null;
-        }
-        const initVal = grandTotal - (ytd26||0);
-        return initVal > 0 ? parseFloat((row.ytd / initVal * 100).toFixed(2)) : null;
-      });
-    } else if (ytd26 && grandTotal) {
-      // 沒有歷史，全部線性推估
-      const initVal = grandTotal - ytd26;
       const todayDays2 = Math.ceil((now - new Date(now.getFullYear(),0,1)) / 86400000);
-      const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-      myReturnData = ml.map((_, i) => {
+      return ml.map((_, i) => {
+        const row = trendNavRows ? [...trendNavRows].reverse().find(r => {
+          const d = new Date(r.date); return !isNaN(d) && d.getMonth() === i && d <= now;
+        }) : null;
+        if (row) return parseFloat((row.ytd / (row.ytd > 0 ? initVal : 1) * 100).toFixed(2));
+        const monthMid = new Date(now.getFullYear(), i, 15);
+        if (monthMid > now) return null;
         const d = (i+0.5)/12*365;
-        if (d > todayDays2) return null;
-        return initVal > 0 ? parseFloat(((d/todayDays2)*(ytd26/initVal)*100).toFixed(2)) : null;
+        return parseFloat(((d/todayDays2) * totalReturn).toFixed(2));
       });
     }
+    const myReturnData    = calcReturnLine(myReturnNetPct); // 用淨資產報酬率
+    const myReturnNetData = null; // 不再需要第二條線
 
-    buildTrendChart(trendNavRows, ytd26, tgt26, spyData, myReturnData);
+    buildTrendChart(trendNavRows, ytd26, tgt26, spyData, myReturnData, myReturnNetData);
+
     console.log('spyData:', spyData, 'vixVal:', vixVal);
     console.log('mktData筆數:', mktTxt ? parseCSV(mktTxt).length : 0);
 
