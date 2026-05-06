@@ -514,7 +514,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
           <div>
             <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">利差</div>
             <div style="font-size:1.1rem;font-weight:600;" id="carrySpreadVal">--</div>
-            <div style="font-size:10px;color:var(--muted);">債券殖利率-5.14%</div>
+            <div style="font-size:10px;color:var(--muted);">債券殖利率 <span id="bondYieldVal">--</span> - 融資5.14%</div>
           </div>
           <div>
             <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">債券年化息收</div>
@@ -1700,14 +1700,19 @@ async function loadAll() {
     const ibLevAnnualCost = Math.abs(ibLev || 0) * 0.0514;
     // 息收覆蓋率
     const carryCoverage = ibLevAnnualCost > 0 ? bondIntAnnual / ibLevAnnualCost : null;
-    // 利差 = 債券年化殖利率 - IB融資利率
-    const bondYield = bondTWD > 0 ? (bondIntAnnual * fx) / bondTWD * 100 : null;
+    // 債券USD市值（從bondTWD換回USD）
+    const bondUSDVal = fx > 0 ? bondTWD / fx : 0;
+    // 債券當前殖利率（USD基礎）
+    const bondYield = bondUSDVal > 0 ? (bondIntAnnual / bondUSDVal * 100) : null;
+    // 利差 = 債券殖利率 - IB融資利率
     const carrySpread = bondYield ? bondYield - 5.14 : null;
     // ── 利差健康度 ──
     const ccEl = document.getElementById('carryCoverageVal');
     const csEl = document.getElementById('carrySpreadVal');
     const biEl = document.getElementById('bondIntVal');
     if (biEl) biEl.textContent = bondIntAnnual ? 'US$' + fmt(bondIntAnnual) : '--';
+    const byEl = document.getElementById('bondYieldVal');
+    if (byEl && bondYield) byEl.textContent = bondYield.toFixed(2) + '%';
     if (ccEl && carryCoverage) {
       ccEl.textContent = carryCoverage.toFixed(2) + 'x';
       ccEl.style.color = carryCoverage >= 1 ? 'var(--green)' : 'var(--red)';
