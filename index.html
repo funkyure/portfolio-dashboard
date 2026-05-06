@@ -297,8 +297,9 @@ tr:hover td { background: rgba(96,165,250,0.03); }
           <span style="font-size:1rem; color:var(--muted); font-weight:400;">NT$</span>
           <div style="font-family:'DM Serif Display',serif; font-size:2.8rem; letter-spacing:-1.5px; color:var(--green);" id="ytdBig">--</div>
         </div>
-        <div style="font-size:13px; color:var(--muted); margin-top:6px;">
-          報酬率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span> &nbsp;·&nbsp; 達成率 <span id="ytdAchieveBig" style="color:var(--blue);">--</span>（目標 <span id="ytdTgtBig">--</span>）
+        <div style="font-size:13px; color:var(--muted); margin-top:6px; line-height:1.8; flex-wrap:wrap;">
+          報酬率 <span id="ytdRateBig" style="color:var(--green); font-weight:600;">--</span><br>
+          達成率 <span id="ytdAchieveBig" style="color:var(--blue);">--</span>（目標 <span id="ytdTgtBig">--</span>）
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px; min-width:200px; padding-top:4px;">
@@ -442,8 +443,10 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <div class="card">
       <div class="section-title" style="margin-bottom:14px;">IB 投組淨值</div>
       <div style="font-family:'DM Serif Display',serif; font-size:2rem; letter-spacing:-1px; background:linear-gradient(135deg,#e8eaf0,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;" id="ibNetBig">--</div>
-      <div style="font-size:12px; color:var(--muted); margin-top:6px;">IB 槓桿 <span id="ibLevBig">--</span> <span style="color:rgba(148,163,184,0.4)">·</span> <span style="color:var(--muted)">利率 5.14%</span></div>
-      <div id="levPillBig" style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">● 讀取中</div>
+      <div style="font-size:12px; color:var(--muted); margin-top:6px; line-height:1.8;">
+        IB 槓桿 <span id="ibLevBig">--</span> · 利率 5.14%
+      </div>
+      <div id="levPillBig" style="margin-top:6px; display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(52,211,153,.15); color:var(--green); border:1px solid rgba(52,211,153,.3);">● 讀取中</div>
       <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:flex; gap:20px; flex-wrap:wrap;">
         <div>
           <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">槓桿比率</div>
@@ -893,7 +896,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   if (trendChart) trendChart.destroy();
   const datasets = [
     {
-      label: '實際報酬(NT$)',
+      label: '實際報酬',
       data: actualData,
       borderColor: '#34d399',
       backgroundColor: 'rgba(52,211,153,0.08)',
