@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投資戰略 | Portfolio Strategy</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #080d14;
+      --bg2:      #0d1520;
+      --bg3:      #111b2a;
+      --border:   rgba(99,179,237,0.08);
+      --border2:  rgba(99,179,237,0.15);
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --green:    #34d399;
+      --blue:     #60a5fa;
+      --yellow:   #fbbf24;
+      --red:      #f87171;
+      --purple:   #a78bfa;
+      --teal:     #2dd4bf;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── 背景網格 ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(96,165,250,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(96,165,250,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,13,20,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem; color: var(--text);
+      text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo span { color: var(--blue); }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 13px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-btn {
+      background: rgba(96,165,250,0.1);
+      border: 1px solid rgba(96,165,250,0.3);
+      color: var(--blue); padding: 6px 16px;
+      border-radius: 20px; font-size: 12px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .nav-btn:hover { background: rgba(96,165,250,0.2); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.2);
+      color: var(--green); padding: 4px 16px;
+      border-radius: 20px; font-size: 11px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      line-height: 1.15; letter-spacing: -1px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #e2e8f0 30%, #60a5fa 70%, #34d399 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 15px; color: var(--muted); max-width: 560px;
+      margin: 0 auto 40px; line-height: 1.8;
+    }
+    .hero-stats {
+      display: flex; justify-content: center; gap: 48px;
+      flex-wrap: wrap;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem; color: var(--green);
+      display: block; margin-bottom: 4px;
+    }
+    .hero-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── 即時快照 ── */
+    .snapshot {
+      background: linear-gradient(135deg, rgba(96,165,250,0.05), rgba(52,211,153,0.05));
+      border: 1px solid rgba(96,165,250,0.15);
+      border-radius: 16px; padding: 20px 28px;
+      margin-bottom: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .snapshot-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .snapshot-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; }
+    .snapshot-divider { width: 1px; height: 40px; background: var(--border2); }
+    .live-dot {
+      display: inline-block; width: 6px; height: 6px;
+      background: var(--green); border-radius: 50%;
+      margin-right: 6px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Section ── */
+    section { padding: 48px 0; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 32px;
+    }
+    .section-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--blue);
+      background: rgba(96,165,250,0.1);
+      border: 1px solid rgba(96,165,250,0.2);
+      padding: 2px 8px; border-radius: 4px;
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem; color: var(--text);
+    }
+
+    /* ── 三引擎卡片 ── */
+    .engines { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 48px; }
+    @media(max-width:768px){ .engines { grid-template-columns: 1fr; } }
+
+    .engine-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .engine-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; border-radius: 16px 16px 0 0;
+    }
+    .engine-card.tw::before { background: linear-gradient(90deg, var(--yellow), var(--green)); }
+    .engine-card.us::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+    .engine-card.re::before { background: linear-gradient(90deg, var(--teal), var(--blue)); }
+    .engine-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+    .engine-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+    .engine-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem; margin-bottom: 8px;
+    }
+    .engine-desc { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+    .engine-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tag-green { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+    .tag-blue  { background: rgba(96,165,250,0.1); color: var(--blue);  border: 1px solid rgba(96,165,250,0.2); }
+    .tag-yellow{ background: rgba(251,191,36,0.1); color: var(--yellow);border: 1px solid rgba(251,191,36,0.2); }
+    .tag-purple{ background: rgba(167,139,250,0.1);color: var(--purple);border: 1px solid rgba(167,139,250,0.2); }
+    .tag-teal  { background: rgba(45,212,191,0.1); color: var(--teal);  border: 1px solid rgba(45,212,191,0.2); }
+
+    /* ── 策略細節 ── */
+    .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+    @media(max-width:768px){ .strategy-grid { grid-template-columns: 1fr; } }
+
+    .strategy-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+    }
+    .strategy-card h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .strategy-item {
+      display: flex; gap: 12px; margin-bottom: 14px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+    .strategy-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .strategy-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      margin-top: 7px; flex-shrink: 0;
+    }
+    .strategy-item-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .strategy-item-desc  { font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .strategy-item-val   {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; margin-top: 4px;
+    }
+
+    /* ── 時間軸 ── */
+    .timeline { position: relative; padding-left: 32px; margin-bottom: 48px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 8px; top: 8px; bottom: 8px;
+      width: 2px; background: linear-gradient(180deg, var(--blue), var(--green), var(--yellow));
+      border-radius: 2px;
+    }
+    .timeline-item {
+      position: relative; margin-bottom: 32px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      transition: border-color 0.3s;
+    }
+    .timeline-item:hover { border-color: var(--border2); }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -28px; top: 22px;
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2px solid var(--bg);
+    }
+    .timeline-item.blue::before   { background: var(--blue); }
+    .timeline-item.green::before  { background: var(--green); }
+    .timeline-item.yellow::before { background: var(--yellow); }
+    .timeline-year {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--blue);
+      margin-bottom: 6px;
+    }
+    .timeline-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem; margin-bottom: 8px;
+    }
+    .timeline-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .timeline-metrics {
+      display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;
+    }
+    .timeline-metric {
+      background: rgba(96,165,250,0.05);
+      border: 1px solid rgba(96,165,250,0.1);
+      border-radius: 8px; padding: 8px 14px;
+    }
+    .timeline-metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem; font-weight: 600; color: var(--green);
+    }
+    .timeline-metric-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* ── 風險SOP ── */
+    .sop-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    @media(max-width:768px){ .sop-grid { grid-template-columns: 1fr; } }
+
+    .sop-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .sop-card:hover { border-color: var(--border2); }
+    .sop-icon { font-size: 1.8rem; margin-bottom: 12px; }
+    .sop-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .sop-trigger {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; margin-bottom: 10px;
+      padding: 4px 10px; border-radius: 6px;
+      display: inline-block;
+    }
+    .sop-action { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+    /* ── 進度圖 ── */
+    .goal-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      margin-bottom: 32px;
+    }
+    .goal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .goal-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
+    .goal-target {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: var(--green);
+    }
+    .goal-bar-wrap {
+      height: 14px; background: rgba(148,163,184,0.08);
+      border-radius: 7px; overflow: hidden; margin-bottom: 10px;
+    }
+    .goal-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #60a5fa, #34d399);
+      border-radius: 7px; transition: width 1.5s ease;
+    }
+    .goal-labels {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted);
+    }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; margin-bottom: 32px;
+      height: 280px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0; text-align: center;
+      color: var(--muted); font-size: 11px;
+      margin-top: 48px;
+    }
+
+    /* ── Animations ── */
+    .fade-in {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">📊 <span>Portfolio</span> Strategy</a>
+    <div class="nav-links">
+      <a href="#engines">三大引擎</a>
+      <a href="#strategy">策略細節</a>
+      <a href="#timeline">目標路徑</a>
+      <a href="#risk">風險SOP</a>
+      <a href="index.html" class="nav-btn">← 返回儀表板</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero fade-in">
+    <div class="hero-badge"><span class="live-dot"></span>2026 – 2036 執行中</div>
+    <h1>正利差槓桿×<br>動態再平衡戰略</h1>
+    <p class="hero-sub">以「以債養股」為核心引擎，結合台股質借槓桿與美股複利再投入，透過三條現金流的協同運作，10年實現5,000萬淨資產目標。</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-val" id="s-netAsset">--</span>
+        <span class="hero-stat-label">當前淨資產</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val" id="s-goalPct">--%</span>
+        <span class="hero-stat-label">目標達成</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val" id="s-carrySpread">--%</span>
+        <span class="hero-stat-label">當前利差</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val" id="s-maintain">--</span>
+        <span class="hero-stat-label">質借維持率</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 即時快照 -->
+  <div class="snapshot fade-in">
+    <div>
+      <div class="snapshot-title"><span class="live-dot"></span>即時數據快照</div>
+      <div style="font-size:11px; color:var(--muted);" id="s-updateTime">讀取中...</div>
+    </div>
+    <div class="snapshot-divider"></div>
+    <div>
+      <div class="snapshot-title">YTD 報酬</div>
+      <div class="snapshot-val green" id="s-ytd" style="color:var(--green)">--</div>
+    </div>
+    <div class="snapshot-divider"></div>
+    <div>
+      <div class="snapshot-title">利差健康度</div>
+      <div class="snapshot-val" id="s-carry">--</div>
+    </div>
+    <div class="snapshot-divider"></div>
+    <div>
+      <div class="snapshot-title">斷路器狀態</div>
+      <div class="snapshot-val" id="s-breaker" style="color:var(--green)">--</div>
+    </div>
+    <div class="snapshot-divider"></div>
+    <div>
+      <div class="snapshot-title">距離目標</div>
+      <div class="snapshot-val" id="s-remain" style="color:var(--yellow)">--</div>
+    </div>
+  </div>
+
+  <!-- 三大引擎 -->
+  <section id="engines">
+    <div class="section-header fade-in">
+      <span class="section-num">01</span>
+      <h2 class="section-title">三大現金流引擎</h2>
+    </div>
+    <div class="engines fade-in">
+      <div class="engine-card tw">
+        <span class="engine-icon">🇹🇼</span>
+        <div class="engine-title">台灣投組</div>
+        <div class="engine-desc">以台股ETF/基金為標的，透過質借維持1.3–1.35倍槓桿，每月DCA投入並在超賣時加碼，以Momentum策略推進資產累積。</div>
+        <div class="engine-tags">
+          <span class="tag tag-yellow">DCA NT$20,000/月</span>
+          <span class="tag tag-green">槓桿 1.3–1.35x</span>
+          <span class="tag tag-yellow">K&lt;20 加碼</span>
+          <span class="tag tag-green">質借利率 2.89%</span>
+        </div>
+      </div>
+      <div class="engine-card us">
+        <span class="engine-icon">🇺🇸</span>
+        <div class="engine-title">美股投組</div>
+        <div class="engine-desc">以「以債養股」為核心：高息債券提供穩定現金流，債息再投入槓桿型大盤ETF，在不增加借款的前提下自動擴大曝險。</div>
+        <div class="engine-tags">
+          <span class="tag tag-blue">正利差 Carry Trade</span>
+          <span class="tag tag-purple">債息再投入</span>
+          <span class="tag tag-blue">融資利率 5.14%</span>
+          <span class="tag tag-purple">債券殖利率 &gt;6%</span>
+        </div>
+      </div>
+      <div class="engine-card re">
+        <span class="engine-icon">🏠</span>
+        <div class="engine-title">房地產</div>
+        <div class="engine-desc">投資房租金支應部分房貸，每月強制儲蓄2.5萬房貸本金，10年後處置預計回收1,000萬，作為去槓桿或退休儲備。</div>
+        <div class="engine-tags">
+          <span class="tag tag-teal">強制儲蓄 2.5萬/月</span>
+          <span class="tag tag-teal">預計回收 1,000萬</span>
+          <span class="tag tag-blue">理財型房貸備援</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 策略細節 -->
+  <section id="strategy">
+    <div class="section-header fade-in">
+      <span class="section-num">02</span>
+      <h2 class="section-title">策略執行細節</h2>
+    </div>
+    <div class="strategy-grid fade-in">
+
+      <!-- DCA策略 -->
+      <div class="strategy-card">
+        <h3>💰 資金投入策略</h3>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--yellow)"></div>
+          <div>
+            <div class="strategy-item-title">每月定期定額</div>
+            <div class="strategy-item-desc">薪資扣除生活支出後，每月固定投入台股ETF/基金，建立資產基石。</div>
+            <div class="strategy-item-val" style="color:var(--yellow)">NT$20,000 / 月</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--green)"></div>
+          <div>
+            <div class="strategy-item-title">債息自動再投入</div>
+            <div class="strategy-item-desc">美債月配息直接DCA投入槓桿型大盤ETF，熊市時亦有子彈攤平並維持維持率。</div>
+            <div class="strategy-item-val" style="color:var(--green)">US$ 債息 → QLD/MSFU</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--blue)"></div>
+          <div>
+            <div class="strategy-item-title">年終獎金加碼</div>
+            <div class="strategy-item-desc">年終分批單筆買入，搭配技術指標（K&lt;20）在短線超賣時執行。</div>
+            <div class="strategy-item-val" style="color:var(--blue)">年度加碼 + 超賣加碼</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 債券組合 -->
+      <div class="strategy-card">
+        <h3>🏦 債券防禦組合</h3>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--blue)"></div>
+          <div>
+            <div class="strategy-item-title">短天期高收益債</div>
+            <div class="strategy-item-desc">鎖定高息，透過短存續期間降低違約風險，提供穩定月配息現金流。</div>
+            <div class="strategy-item-val" style="color:var(--blue)">BCRED / BATSLN</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--purple)"></div>
+          <div>
+            <div class="strategy-item-title">長天期投資級債</div>
+            <div class="strategy-item-desc">獲取信用溢酬，利用高品質債信對沖系統性風險，降息時有資本利得。</div>
+            <div class="strategy-item-val" style="color:var(--purple)">MQGAU / PEMEX / WDC</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--green)"></div>
+          <div>
+            <div class="strategy-item-title">正利差核心原則</div>
+            <div class="strategy-item-desc">確保債券投組殖利率持續高於IB融資利率，引擎才是正現金流運作。</div>
+            <div class="strategy-item-val" style="color:var(--green)">債券殖利率 &gt; 5.14%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 槓桿管理 -->
+      <div class="strategy-card">
+        <h3>⚡ 槓桿管理原則</h3>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--yellow)"></div>
+          <div>
+            <div class="strategy-item-title">目標槓桿區間</div>
+            <div class="strategy-item-desc">台股質借維持1.3–1.35倍槓桿，透過Momentum策略放大報酬。</div>
+            <div class="strategy-item-val" style="color:var(--yellow)">1.30x – 1.35x 槓桿</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--red)"></div>
+          <div>
+            <div class="strategy-item-title">500% 風險斷路器</div>
+            <div class="strategy-item-desc">整體維持率跌破500%即停止增貸，轉為純現金投入，保護核心倉位。</div>
+            <div class="strategy-item-val" style="color:var(--red)">維持率 &lt;500% → 停止增貸</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--blue)"></div>
+          <div>
+            <div class="strategy-item-title">槓桿型ETF選擇</div>
+            <div class="strategy-item-desc">透過大市值標的對沖槓桿波動，確保不被市場震盪掃出場。</div>
+            <div class="strategy-item-val" style="color:var(--blue)">QLD / MSFU / GGLL / AAPU</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 投資哲學 -->
+      <div class="strategy-card">
+        <h3>🧠 核心投資哲學</h3>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--green)"></div>
+          <div>
+            <div class="strategy-item-title">長期持有，不中斷複利</div>
+            <div class="strategy-item-desc">堅信股市長線向上，非急需不賣出，保護複利曲線不中斷。</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--blue)"></div>
+          <div>
+            <div class="strategy-item-title">零個股研究成本</div>
+            <div class="strategy-item-desc">放棄追求超額Alpha，專注獲取大盤β報酬與槓桿帶來的倍增效果。</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-dot" style="background:var(--yellow)"></div>
+          <div>
+            <div class="strategy-item-title">三流合一的協同運作</div>
+            <div class="strategy-item-desc">勞務現金流（薪資）＋資產現金流（債息）＋信用流動性（槓桿）相互強化。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 目標時間軸 -->
+  <section id="timeline">
+    <div class="section-header fade-in">
+      <span class="section-num">03</span>
+      <h2 class="section-title">目標路徑與里程碑</h2>
+    </div>
+
+    <!-- 10年目標進度 -->
+    <div class="goal-section fade-in">
+      <div class="goal-header">
+        <div class="goal-title">🎯 10年目標達成進度</div>
+        <div class="goal-target">目標：NT$5,000萬 | 2034–2035</div>
+      </div>
+      <div class="goal-bar-wrap">
+        <div class="goal-bar" id="s-goalBar"></div>
+      </div>
+      <div class="goal-labels">
+        <span>NT$0</span>
+        <span id="s-goalLabel">載入中...</span>
+        <span>NT$5,000萬</span>
+      </div>
+    </div>
+
+    <!-- 資產成長預估圖 -->
+    <div class="chart-wrap fade-in">
+      <canvas id="projectionChart"></canvas>
+    </div>
+
+    <div class="timeline fade-in">
+      <div class="timeline-item blue">
+        <div class="timeline-year">2026 — 現在</div>
+        <div class="timeline-title">系統啟動期</div>
+        <div class="timeline-desc">三大引擎全數就位。台股質借槓桿運作，美股以債養股正現金流，房地產強制儲蓄進行中。</div>
+        <div class="timeline-metrics">
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" id="s-currentNet">--</div>
+            <div class="timeline-metric-label">當前淨資產</div>
+          </div>
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" id="s-ytd2">--</div>
+            <div class="timeline-metric-label">YTD 報酬</div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item green">
+        <div class="timeline-year">2027 末 — 短期目標</div>
+        <div class="timeline-title">被動收入突破 NT$250萬/年</div>
+        <div class="timeline-desc">債息收入 + 台股配息達到每年250萬，開始覆蓋主要生活支出，財務自由初步實現。</div>
+        <div class="timeline-metrics">
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" style="color:var(--green)">NT$250萬+</div>
+            <div class="timeline-metric-label">目標被動收入/年</div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline-item yellow">
+        <div class="timeline-year">2034 – 2035 — 長期目標</div>
+        <div class="timeline-title">淨資產達 NT$5,000萬</div>
+        <div class="timeline-desc">處置投資房回收1,000萬，股票投組淨資產達4,000萬，以10%年化報酬每年產出500萬被動收入，正式進入退休模式。</div>
+        <div class="timeline-metrics">
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" style="color:var(--yellow)">NT$5,000萬</div>
+            <div class="timeline-metric-label">目標淨資產</div>
+          </div>
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" style="color:var(--green)">NT$500萬/年</div>
+            <div class="timeline-metric-label">被動收入目標</div>
+          </div>
+          <div class="timeline-metric">
+            <div class="timeline-metric-val" style="color:var(--blue)">10%</div>
+            <div class="timeline-metric-label">年化報酬假設</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 風險SOP -->
+  <section id="risk">
+    <div class="section-header fade-in">
+      <span class="section-num">04</span>
+      <h2 class="section-title">風險管控 SOP</h2>
+    </div>
+    <div class="sop-grid fade-in">
+      <div class="sop-card">
+        <div class="sop-icon">🟢</div>
+        <div class="sop-title">正常運作</div>
+        <div class="sop-trigger tag tag-green">維持率 &gt; 600%</div>
+        <div class="sop-action">全速執行策略，每月DCA，年終加碼，債息再投入槓桿ETF。保持1.3–1.35倍槓桿。</div>
+      </div>
+      <div class="sop-card">
+        <div class="sop-icon">🟡</div>
+        <div class="sop-title">預警區間</div>
+        <div class="sop-trigger tag tag-yellow">維持率 500–600%</div>
+        <div class="sop-action">停止新增質借，維持現有倉位。加強監控每日維持率，準備應對方案。債息繼續再投入。</div>
+      </div>
+      <div class="sop-card">
+        <div class="sop-icon">🔴</div>
+        <div class="sop-title">斷路器觸發</div>
+        <div class="sop-trigger tag tag-green" style="background:rgba(248,113,113,0.1);color:var(--red);border-color:rgba(248,113,113,0.2);">維持率 &lt; 500%</div>
+        <div class="sop-action">立即停止增貸，轉為純現金投入。啟動基金質借應急資金。等待維持率回升。</div>
+      </div>
+      <div class="sop-card">
+        <div class="sop-icon">⚠️</div>
+        <div class="sop-title">追繳警示</div>
+        <div class="sop-trigger tag tag-green" style="background:rgba(248,113,113,0.1);color:var(--red);border-color:rgba(248,113,113,0.2);">維持率 &lt; 140%</div>
+        <div class="sop-action">立即補充資金或減少質借部位。優先動用現金，其次考慮減少ETF倉位。</div>
+      </div>
+      <div class="sop-card">
+        <div class="sop-icon">📉</div>
+        <div class="sop-title">超賣加碼（買點）</div>
+        <div class="sop-trigger tag tag-blue">KD指標 K &lt; 20</div>
+        <div class="sop-action">執行單筆加碼，搭配年終獎金分批買入。這是預演過的SOP，市場恐慌時保持冷靜執行。</div>
+      </div>
+      <div class="sop-card">
+        <div class="sop-icon">🔄</div>
+        <div class="sop-title">利差收窄警示</div>
+        <div class="sop-trigger tag tag-purple">利差 &lt; 1%</div>
+        <div class="sop-action">評估是否調整債券標的或清償部分融資。確保「以債養股」引擎持續正現金流運作。</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div>Portfolio Strategy 2026–2036 · 數據即時同步自 Google Sheet · 策略持續執行中</div>
+</footer>
+
+<script>
+const SHEET_ID = '16nVY0h2M8mDWFU-gubKtYlSHh9Fu4JOlx_n_p0YNwM4';
+function csvUrl(t) { return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}`; }
+function parseCSV(t) {
+  return t.trim().split('\n').map(r => {
+    const result = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < r.length; i++) {
+      if (r[i] === '"') { inQ = !inQ; }
+      else if (r[i] === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+      else cur += r[i];
+    }
+    result.push(cur.trim()); return result;
+  });
+}
+function num(s) { const v = parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(v) ? null : v; }
+function fmt(n) { return Math.abs(n) >= 1e6 ? (n/1e6).toFixed(2)+'M' : Math.abs(n) >= 1e3 ? (n/1e3).toFixed(0)+'K' : n?.toFixed(0) || '--'; }
+function fmtNT(n) { return n ? 'NT$'+fmt(n) : '--'; }
+
+// 資產成長預估圖
+function buildProjectionChart(current) {
+  const years = [];
+  const optimistic = []; // 12%
+  const base = [];       // 10%
+  const conservative = []; // 8%
+  const goal = [];
+
+  const now = new Date().getFullYear();
+  for (let i = 0; i <= 10; i++) {
+    years.push((now + i) + '');
+    optimistic.push(parseFloat((current * Math.pow(1.12, i) / 1e6).toFixed(2)));
+    base.push(parseFloat((current * Math.pow(1.10, i) / 1e6).toFixed(2)));
+    conservative.push(parseFloat((current * Math.pow(1.08, i) / 1e6).toFixed(2)));
+    goal.push(50);
+  }
+
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.borderColor = 'rgba(148,163,184,0.08)';
+
+  new Chart(document.getElementById('projectionChart'), {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        { label: '樂觀 12%', data: optimistic, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.05)', fill: true, tension: 0.4, pointRadius: 3 },
+        { label: '基準 10%', data: base, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.05)', fill: true, tension: 0.4, pointRadius: 3 },
+        { label: '保守 8%',  data: conservative, borderColor: '#fbbf24', backgroundColor: 'transparent', borderDash: [4,3], tension: 0.4, pointRadius: 3 },
+        { label: '目標 5,000萬', data: goal, borderColor: 'rgba(248,113,113,0.5)', borderDash: [6,4], tension: 0, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { ticks: { callback: v => 'NT$'+v+'M' }, grid: { color: 'rgba(148,163,184,0.06)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M` } }
+      }
+    }
+  });
+}
+
+async function loadSnapshot() {
+  try {
+    const [totalRes, chgRes, mktRes, bondIntRes] = await Promise.all([
+      fetch(csvUrl('總表')),
+      fetch(csvUrl('資產變化')),
+      fetch(csvUrl('市場數據')),
+      fetch(csvUrl('債券利息'))
+    ]);
+    const total   = parseCSV(await totalRes.text());
+    const yearChg = parseCSV(await chgRes.text());
+
+    const ibNet    = num(total[0][1]);
+    const ibLev    = num(total[1][1]);
+    const twPledge = num(total[2][1]);
+    const fx       = num(total[12][3]) || 31.817;
+    const ytd26    = num(yearChg[3][6]);
+
+    // 動態掃描台股
+    let twETFV = 0, twFundV = 0, bondTWD = 0, usTotal = 0;
+    let inUSSection = false, inTWSection = false;
+    for (let i = 0; i < total.length; i++) {
+      const r = total[i];
+      if ((r[0]||'').includes('美股')) { inUSSection = true; inTWSection = false; }
+      if ((r[0]||'').includes('台股ETF')) { inTWSection = true; inUSSection = false; }
+      if ((r[0]||'').includes('小計') && inUSSection) { usTotal = num(r[7]) || usTotal; inUSSection = false; }
+      if ((r[0]||'').includes('債券市值')) { bondTWD = num(r[7]) || num(r[1]) || bondTWD; }
+      if (inTWSection && r[0] && !r[0].includes('台股') && !r[0].includes('小計')) {
+        const v = num(r[1]);
+        if (v) { if ((r[0]||'').startsWith('TPE:') || (r[1]||'').includes('NT$')) twETFV += v; else twFundV += v; }
+      }
+    }
+    const usStockTWD = (usTotal||0) * fx;
+    const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
+    const netAsset   = grandTotal - Math.abs(ibLev||0)*fx - (twPledge||0);
+
+    // 維持率
+    let maintainFR = null;
+    const m = num(total[6]?.[1]);
+    if (m) maintainFR = m;
+
+    // 利差
+    let bondIntAnnual = 0;
+    if (bondIntRes.ok) {
+      const rows = parseCSV(await bondIntRes.text());
+      rows.forEach(r => { const v = num(r[1]); if (v) bondIntAnnual += v; });
+    }
+    const bondUSDVal = fx > 0 ? bondTWD / fx : 0;
+    const bondYield = bondUSDVal > 0 ? bondIntAnnual / bondUSDVal * 100 : null;
+    const carrySpread = bondYield ? bondYield - 5.14 : null;
+
+    // 更新 Hero 數據
+    const GOAL = 50000000;
+    const goalPct = netAsset / GOAL * 100;
+
+    document.getElementById('s-netAsset').textContent = fmtNT(netAsset);
+    document.getElementById('s-goalPct').textContent = goalPct.toFixed(1) + '%';
+    document.getElementById('s-carrySpread').textContent = carrySpread ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
+    document.getElementById('s-maintain').textContent = maintainFR ? (maintainFR*100).toFixed(0) + '%' : '--';
+
+    // 快照
+    const now = new Date();
+    document.getElementById('s-updateTime').textContent = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
+    document.getElementById('s-ytd').textContent = ytd26 ? (ytd26 >= 0 ? '+' : '') + fmtNT(ytd26) : '--';
+    document.getElementById('s-carry').textContent = carrySpread ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
+
+    const bStatus = !maintainFR ? '--' : maintainFR < 1.4 ? '⚠️ 追繳警示' : maintainFR < 5 ? '🔴 斷路器觸發' : maintainFR < 6 ? '🟡 預警區間' : '🟢 正常運作';
+    const bColor  = !maintainFR ? 'var(--muted)' : maintainFR < 5 ? 'var(--red)' : maintainFR < 6 ? 'var(--yellow)' : 'var(--green)';
+    document.getElementById('s-breaker').textContent = bStatus;
+    document.getElementById('s-breaker').style.color = bColor;
+    document.getElementById('s-remain').textContent = fmtNT(GOAL - netAsset);
+
+    // 目標進度條
+    const barEl = document.getElementById('s-goalBar');
+    if (barEl) setTimeout(() => barEl.style.width = Math.min(goalPct, 100) + '%', 300);
+    const goalLabel = document.getElementById('s-goalLabel');
+    if (goalLabel) {
+      const yrs = Math.log(GOAL/netAsset) / Math.log(1.1);
+      const eta = new Date(); eta.setFullYear(eta.getFullYear() + Math.floor(yrs));
+      goalLabel.textContent = `${goalPct.toFixed(1)}% 達成 · 預估 ${eta.getFullYear()} 年`;
+    }
+
+    // Timeline 數據
+    document.getElementById('s-currentNet').textContent = fmtNT(netAsset);
+    document.getElementById('s-ytd2').textContent = ytd26 ? fmtNT(ytd26) : '--';
+
+    // 資產成長預估圖
+    buildProjectionChart(netAsset);
+
+  } catch(e) { console.error('載入失敗:', e); }
+}
+
+// Intersection Observer for animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+loadSnapshot();
+</script>
+</body>
+</html>
