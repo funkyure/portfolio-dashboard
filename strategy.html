@@ -485,8 +485,8 @@
           <div class="strategy-dot" style="background:var(--green)"></div>
           <div>
             <div class="strategy-item-title">債息自動再投入</div>
-            <div class="strategy-item-desc">美債月配息直接DCA投入槓桿型大盤ETF，熊市時亦有子彈攤平並維持維持率。</div>
-            <div class="strategy-item-val" style="color:var(--green)">US$ 債息 → QLD/MSFU</div>
+            <div class="strategy-item-desc">美債月配息直接DCA投入槓桿型大盤ETF，在不增加借款的前提下自動擴大曝險，熊市時亦有子彈攤平並維持維持率。</div>
+            <div class="strategy-item-val" style="color:var(--green)">每月債息 → 槓桿型大盤ETF</div>
           </div>
         </div>
         <div class="strategy-item">
@@ -506,16 +506,16 @@
           <div class="strategy-dot" style="background:var(--blue)"></div>
           <div>
             <div class="strategy-item-title">短天期高收益債</div>
-            <div class="strategy-item-desc">鎖定高息，透過短存續期間降低違約風險，提供穩定月配息現金流。</div>
-            <div class="strategy-item-val" style="color:var(--blue)">BCRED / BATSLN</div>
+            <div class="strategy-item-desc">鎖定高息，透過短存續期間降低違約風險，提供穩定月配息現金流作為再投入子彈。</div>
+            <div class="strategy-item-val" style="color:var(--blue)">目標殖利率 &gt; 7%</div>
           </div>
         </div>
         <div class="strategy-item">
           <div class="strategy-dot" style="background:var(--purple)"></div>
           <div>
             <div class="strategy-item-title">長天期投資級債</div>
-            <div class="strategy-item-desc">獲取信用溢酬，利用高品質債信對沖系統性風險，降息時有資本利得。</div>
-            <div class="strategy-item-val" style="color:var(--purple)">MQGAU / PEMEX / WDC</div>
+            <div class="strategy-item-desc">獲取信用溢酬，利用高品質債信對沖系統性風險，降息環境下有額外資本利得。</div>
+            <div class="strategy-item-val" style="color:var(--purple)">投資級 / 長存續期間</div>
           </div>
         </div>
         <div class="strategy-item">
@@ -641,7 +641,7 @@
         </div>
       </div>
       <div class="timeline-item yellow">
-        <div class="timeline-year">2034 – 2035 — 長期目標</div>
+        <div class="timeline-year">預估達成年份：2034 – 2035</div>
         <div class="timeline-title">淨資產達 NT$5,000萬</div>
         <div class="timeline-desc">處置投資房回收1,000萬，股票投組淨資產達4,000萬，以10%年化報酬每年產出500萬被動收入，正式進入退休模式。</div>
         <div class="timeline-metrics">
@@ -779,10 +779,9 @@ function buildProjectionChart(current) {
 
 async function loadSnapshot() {
   try {
-    const [totalRes, chgRes, mktRes, bondIntRes] = await Promise.all([
+    const [totalRes, chgRes, bondIntRes] = await Promise.all([
       fetch(csvUrl('總表')),
       fetch(csvUrl('資產變化')),
-      fetch(csvUrl('市場數據')),
       fetch(csvUrl('債券利息'))
     ]);
     const total   = parseCSV(await totalRes.text());
@@ -794,53 +793,68 @@ async function loadSnapshot() {
     const fx       = num(total[12][3]) || 31.817;
     const ytd26    = num(yearChg[3][6]);
 
-    // 動態掃描台股
-    let twETFV = 0, twFundV = 0, bondTWD = 0, usTotal = 0;
-    let inUSSection = false, inTWSection = false;
-    for (let i = 0; i < total.length; i++) {
+    // 用主頁相同邏輯讀取資產（H欄USD市值，H15=債券USD, H16=債券TWD）
+    let bondTWD = 0, usTotal = 0, twETFV = 0, twFundV = 0;
+    let inUS = false, inTW = false;
+    for (let i = 13; i < total.length; i++) {
       const r = total[i];
-      if ((r[0]||'').includes('美股')) { inUSSection = true; inTWSection = false; }
-      if ((r[0]||'').includes('台股ETF')) { inTWSection = true; inUSSection = false; }
-      if ((r[0]||'').includes('小計') && inUSSection) { usTotal = num(r[7]) || usTotal; inUSSection = false; }
-      if ((r[0]||'').includes('債券市值')) { bondTWD = num(r[7]) || num(r[1]) || bondTWD; }
-      if (inTWSection && r[0] && !r[0].includes('台股') && !r[0].includes('小計')) {
+      const label = (r[0]||'').trim();
+      if (label === '美股') { inUS = true; inTW = false; continue; }
+      if (label === '台股ETF/基金') { inTW = true; inUS = false; continue; }
+      if (label === '小計' && inUS) { usTotal = num(r[7]) || usTotal; inUS = false; continue; }
+      if (label === '小計' && inTW) { inTW = false; continue; }
+      if (label.includes('債券市值') || label.includes('債券')) {
+        const v = num(r[7]) || num(r[1]);
+        if (v && v > 1000) bondTWD = v;
+      }
+      if (inTW && label) {
         const v = num(r[1]);
-        if (v) { if ((r[0]||'').startsWith('TPE:') || (r[1]||'').includes('NT$')) twETFV += v; else twFundV += v; }
+        if (v) { if (label.startsWith('TPE:')) twETFV += v; else twFundV += v; }
       }
     }
+    // bondTWD 備援：從H15/H16讀
+    if (!bondTWD) {
+      const h16 = num(total[15]?.[7]);
+      const h15 = num(total[14]?.[7]);
+      if (h16 && h16 > 1000) bondTWD = h16;
+      else if (h15 && h15 > 1000) bondTWD = h15 * fx;
+    }
+
     const usStockTWD = (usTotal||0) * fx;
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
     const netAsset   = grandTotal - Math.abs(ibLev||0)*fx - (twPledge||0);
 
-    // 維持率
-    let maintainFR = null;
-    const m = num(total[6]?.[1]);
-    if (m) maintainFR = m;
+    // 維持率含基金（row6）
+    const maintainFR = num(total[6]?.[1]);
 
-    // 利差
+    // 利差：從債券利息tab讀B欄(index 1)，全部加總
     let bondIntAnnual = 0;
     if (bondIntRes.ok) {
-      const rows = parseCSV(await bondIntRes.text());
-      rows.forEach(r => { const v = num(r[1]); if (v) bondIntAnnual += v; });
+      const bondTxt = await bondIntRes.text();
+      const rows = parseCSV(bondTxt);
+      rows.forEach(r => {
+        const v = num(r[1]);
+        if (v && v > 0) bondIntAnnual += v;
+      });
     }
-    const bondUSDVal = fx > 0 ? bondTWD / fx : 0;
-    const bondYield = bondUSDVal > 0 ? bondIntAnnual / bondUSDVal * 100 : null;
+    const bondUSDVal  = fx > 0 ? bondTWD / fx : 0;
+    const bondYield   = (bondUSDVal > 0 && bondIntAnnual > 0) ? bondIntAnnual / bondUSDVal * 100 : null;
     const carrySpread = bondYield ? bondYield - 5.14 : null;
 
-    // 更新 Hero 數據
+    // ── 更新 Hero ──
     const GOAL = 50000000;
     const goalPct = netAsset / GOAL * 100;
 
     document.getElementById('s-netAsset').textContent = fmtNT(netAsset);
     document.getElementById('s-goalPct').textContent = goalPct.toFixed(1) + '%';
-    document.getElementById('s-carrySpread').textContent = carrySpread ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
+    document.getElementById('s-carrySpread').textContent = carrySpread != null ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
     document.getElementById('s-maintain').textContent = maintainFR ? (maintainFR*100).toFixed(0) + '%' : '--';
 
-    // 快照
+    // ── 快照 ──
     const now = new Date();
     document.getElementById('s-updateTime').textContent = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
     document.getElementById('s-ytd').textContent = ytd26 ? (ytd26 >= 0 ? '+' : '') + fmtNT(ytd26) : '--';
-    document.getElementById('s-carry').textContent = carrySpread ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
+    document.getElementById('s-carry').textContent = carrySpread != null ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
 
     const bStatus = !maintainFR ? '--' : maintainFR < 1.4 ? '⚠️ 追繳警示' : maintainFR < 5 ? '🔴 斷路器觸發' : maintainFR < 6 ? '🟡 預警區間' : '🟢 正常運作';
     const bColor  = !maintainFR ? 'var(--muted)' : maintainFR < 5 ? 'var(--red)' : maintainFR < 6 ? 'var(--yellow)' : 'var(--green)';
@@ -848,21 +862,20 @@ async function loadSnapshot() {
     document.getElementById('s-breaker').style.color = bColor;
     document.getElementById('s-remain').textContent = fmtNT(GOAL - netAsset);
 
-    // 目標進度條
+    // ── 目標進度條 ──
     const barEl = document.getElementById('s-goalBar');
     if (barEl) setTimeout(() => barEl.style.width = Math.min(goalPct, 100) + '%', 300);
     const goalLabel = document.getElementById('s-goalLabel');
     if (goalLabel) {
       const yrs = Math.log(GOAL/netAsset) / Math.log(1.1);
       const eta = new Date(); eta.setFullYear(eta.getFullYear() + Math.floor(yrs));
-      goalLabel.textContent = `${goalPct.toFixed(1)}% 達成 · 預估 ${eta.getFullYear()} 年`;
+      goalLabel.textContent = `NT$${fmt(netAsset)} (${goalPct.toFixed(1)}%) · 預估 ${eta.getFullYear()} 年達成`;
     }
 
-    // Timeline 數據
+    // Timeline
     document.getElementById('s-currentNet').textContent = fmtNT(netAsset);
     document.getElementById('s-ytd2').textContent = ytd26 ? fmtNT(ytd26) : '--';
 
-    // 資產成長預估圖
     buildProjectionChart(netAsset);
 
   } catch(e) { console.error('載入失敗:', e); }
