@@ -111,16 +111,21 @@
       margin: 0 auto 40px; line-height: 1.8;
     }
     .hero-stats {
-      display: flex; justify-content: center; gap: 48px;
+      display: flex; justify-content: center; gap: 40px;
       flex-wrap: wrap;
     }
-    .hero-stat { text-align: center; }
+    .hero-stat { text-align: center; min-width: 100px; }
     .hero-stat-val {
       font-family: 'DM Serif Display', serif;
-      font-size: 2rem; color: var(--green);
+      font-size: 1.8rem; color: var(--green);
       display: block; margin-bottom: 4px;
+      word-break: break-all;
     }
     .hero-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    @media(max-width:600px){
+      .hero-stat-val { font-size: 1.3rem; }
+      .hero-stats { gap: 20px; }
+    }
 
     /* ── 即時快照 ── */
     .snapshot {
@@ -128,9 +133,15 @@
       border: 1px solid rgba(96,165,250,0.15);
       border-radius: 16px; padding: 20px 28px;
       margin-bottom: 48px;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 16px;
+      display: grid;
+      grid-template-columns: auto 1px repeat(4, 1fr);
+      gap: 16px; align-items: center;
     }
+    @media(max-width:768px){
+      .snapshot { grid-template-columns: 1fr 1fr; }
+      .snapshot-divider { display: none; }
+    }
+    @media(max-width:400px){ .snapshot { grid-template-columns: 1fr; } }
     .snapshot-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
     .snapshot-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; }
     .snapshot-divider { width: 1px; height: 40px; background: var(--border2); }
@@ -787,55 +798,58 @@ async function loadSnapshot() {
     const total   = parseCSV(await totalRes.text());
     const yearChg = parseCSV(await chgRes.text());
 
+    // ── 基本數值（同主頁邏輯）──
     const ibNet    = num(total[0][1]);
     const ibLev    = num(total[1][1]);
     const twPledge = num(total[2][1]);
     const fx       = num(total[12][3]) || 31.817;
     const ytd26    = num(yearChg[3][6]);
+    const maintainFR = num(total[6]?.[1]); // 含基金維持率（小數，如9.4）
 
-    // 用主頁相同邏輯讀取資產（H欄USD市值，H15=債券USD, H16=債券TWD）
-    let bondTWD = 0, usTotal = 0, twETFV = 0, twFundV = 0;
-    let inUS = false, inTW = false;
-    for (let i = 13; i < total.length; i++) {
+    // ── 動態掃描持倉（與主頁完全相同）──
+    let bondTWD = 0, bondUSD = 0, usTotal = 0;
+    let twETFV = 0, twFundV = 0;
+    let section = '';
+    for (let i = 0; i < total.length; i++) {
       const r = total[i];
-      const label = (r[0]||'').trim();
-      if (label === '美股') { inUS = true; inTW = false; continue; }
-      if (label === '台股ETF/基金') { inTW = true; inUS = false; continue; }
-      if (label === '小計' && inUS) { usTotal = num(r[7]) || usTotal; inUS = false; continue; }
-      if (label === '小計' && inTW) { inTW = false; continue; }
-      if (label.includes('債券市值') || label.includes('債券')) {
-        const v = num(r[7]) || num(r[1]);
-        if (v && v > 1000) bondTWD = v;
-      }
-      if (inTW && label) {
+      if (!r || !r[0]) continue;
+      const a = r[0].trim();
+      if (a === '美股') { section = 'us'; continue; }
+      if (a === '台股ETF/基金') { section = 'tw'; continue; }
+      if (section === 'us' && a === '小計') { usTotal = num(r[1]); section = ''; continue; }
+      if (section === 'tw' && a === '小計') { section = ''; continue; }
+      if (section === 'tw') {
         const v = num(r[1]);
-        if (v) { if (label.startsWith('TPE:')) twETFV += v; else twFundV += v; }
+        if (!v || !a) continue;
+        if (a.startsWith('TPE:')) twETFV += v;
+        else twFundV += v;
+      }
+      if ((r[6]||'').trim() === '債券市值') {
+        bondUSD = num(r[7]);
+        bondTWD = num((total[i+1]||[])[7]);
       }
     }
-    // bondTWD 備援：從H15/H16讀
     if (!bondTWD) {
-      const h16 = num(total[15]?.[7]);
-      const h15 = num(total[14]?.[7]);
-      if (h16 && h16 > 1000) bondTWD = h16;
-      else if (h15 && h15 > 1000) bondTWD = h15 * fx;
+      for (let i = 10; i < 25; i++) {
+        for (let j = 5; j < 12; j++) {
+          const raw = (total[i]||[])[j] || '';
+          if (raw.includes && raw.includes('NT$') && num(raw) > 7000000) {
+            bondTWD = num(raw); break;
+          }
+        }
+        if (bondTWD) break;
+      }
     }
 
     const usStockTWD = (usTotal||0) * fx;
     const grandTotal = bondTWD + twETFV + twFundV + usStockTWD;
     const netAsset   = grandTotal - Math.abs(ibLev||0)*fx - (twPledge||0);
 
-    // 維持率含基金（row6）
-    const maintainFR = num(total[6]?.[1]);
-
-    // 利差：從債券利息tab讀B欄(index 1)，全部加總
+    // ── 利差計算 ──
     let bondIntAnnual = 0;
     if (bondIntRes.ok) {
-      const bondTxt = await bondIntRes.text();
-      const rows = parseCSV(bondTxt);
-      rows.forEach(r => {
-        const v = num(r[1]);
-        if (v && v > 0) bondIntAnnual += v;
-      });
+      const rows = parseCSV(await bondIntRes.text());
+      rows.forEach(r => { const v = num(r[1]); if (v && v > 0) bondIntAnnual += v; });
     }
     const bondUSDVal  = fx > 0 ? bondTWD / fx : 0;
     const bondYield   = (bondUSDVal > 0 && bondIntAnnual > 0) ? bondIntAnnual / bondUSDVal * 100 : null;
@@ -845,7 +859,7 @@ async function loadSnapshot() {
     const GOAL = 50000000;
     const goalPct = netAsset / GOAL * 100;
 
-    document.getElementById('s-netAsset').textContent = fmtNT(netAsset);
+    document.getElementById('s-netAsset').textContent = 'NT$' + fmt(netAsset);
     document.getElementById('s-goalPct').textContent = goalPct.toFixed(1) + '%';
     document.getElementById('s-carrySpread').textContent = carrySpread != null ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
     document.getElementById('s-maintain').textContent = maintainFR ? (maintainFR*100).toFixed(0) + '%' : '--';
@@ -853,14 +867,14 @@ async function loadSnapshot() {
     // ── 快照 ──
     const now = new Date();
     document.getElementById('s-updateTime').textContent = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 更新`;
-    document.getElementById('s-ytd').textContent = ytd26 ? (ytd26 >= 0 ? '+' : '') + fmtNT(ytd26) : '--';
+    document.getElementById('s-ytd').textContent = ytd26 ? (ytd26 >= 0 ? '+' : '') + 'NT$' + fmt(ytd26) : '--';
     document.getElementById('s-carry').textContent = carrySpread != null ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
 
     const bStatus = !maintainFR ? '--' : maintainFR < 1.4 ? '⚠️ 追繳警示' : maintainFR < 5 ? '🔴 斷路器觸發' : maintainFR < 6 ? '🟡 預警區間' : '🟢 正常運作';
     const bColor  = !maintainFR ? 'var(--muted)' : maintainFR < 5 ? 'var(--red)' : maintainFR < 6 ? 'var(--yellow)' : 'var(--green)';
     document.getElementById('s-breaker').textContent = bStatus;
     document.getElementById('s-breaker').style.color = bColor;
-    document.getElementById('s-remain').textContent = fmtNT(GOAL - netAsset);
+    document.getElementById('s-remain').textContent = 'NT$' + fmt(GOAL - netAsset);
 
     // ── 目標進度條 ──
     const barEl = document.getElementById('s-goalBar');
@@ -873,8 +887,8 @@ async function loadSnapshot() {
     }
 
     // Timeline
-    document.getElementById('s-currentNet').textContent = fmtNT(netAsset);
-    document.getElementById('s-ytd2').textContent = ytd26 ? fmtNT(ytd26) : '--';
+    document.getElementById('s-currentNet').textContent = 'NT$' + fmt(netAsset);
+    document.getElementById('s-ytd2').textContent = ytd26 ? 'NT$' + fmt(ytd26) : '--';
 
     buildProjectionChart(netAsset);
 
