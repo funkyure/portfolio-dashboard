@@ -970,7 +970,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
           position: 'top', align: 'end',
           labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 },
             generateLabels: chart => chart.data.datasets.map((ds, i) => ({
-              text: ds.yAxisID === 'y2' ? `%: ${ds.label}` : ds.label,
+              text: ds.yAxisID === 'y2' ? `%: ${ds.label}` : `NT$: ${ds.label}`,
               fillStyle: ds.borderColor,
               strokeStyle: ds.borderColor,
               fontColor: '#94a3b8',
@@ -1052,71 +1052,39 @@ async function loadAll() {
     const yearChg = parseCSV(chgTxt);
     const fgScore = fgResult instanceof Error ? null : fgResult;
 
-    // VIX 直接從Yahoo抓，備援從Google Sheet
+    // 市場數據：全部從Google Sheet讀取（VIX, SPY, 台股ETF漲跌）
     const now = new Date();
-    let vixVal = null;
-    try {
-      const vixRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d');
-      if (vixRes.ok) {
-        const vixJson = await vixRes.json();
-        vixVal = vixJson?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
-      }
-    } catch(e) { console.log('VIX fetch失敗:', e); }
-
-    let spyData = null;
-    try {
-      const spyRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1mo&range=1y');
-      if (spyRes.ok) {
-        const spyJson = await spyRes.json();
-        const closes = spyJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
-        const timestamps = spyJson?.chart?.result?.[0]?.timestamp;
-        if (closes && timestamps) {
-          const SPY_BASE = 681.92;
-          const ml = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-          spyData = new Array(12).fill(null);
-          for (let i = 0; i < timestamps.length; i++) {
-            const d = new Date(timestamps[i] * 1000);
-            if (d.getFullYear() === now.getFullYear() && closes[i]) {
-              const month = d.getMonth();
-              spyData[month] = parseFloat(((closes[i] / SPY_BASE - 1) * 100).toFixed(2));
-            }
-          }
-        }
-      }
-    } catch(e) { console.log('SPY fetch失敗:', e); }
-
-    // SPY 月線（月底收盤，基準用2025/12收盤678.06）
-    const SPY_MONTHLY = {
-      0: 690.09,  // 1月
-      1: 684.12,  // 2月
-      2: 648.57,  // 3月
-      3: 718.66,  // 4月
-    };
-    const SPY_BASE = 678.06; // 2025/12月底基準
-    spyData = new Array(12).fill(null);
-    Object.entries(SPY_MONTHLY).forEach(([m, price]) => {
-      spyData[parseInt(m)] = parseFloat(((price / SPY_BASE - 1) * 100).toFixed(2));
-    });
-    // 5月用Google Sheet市場數據補（之後每月自動更新）
+    let vixVal = null, spyData = null;
+    const twChangeMap = {};
+    const ETF_COLS = {'00830':3,'00662':4,'0050':5,'00757':6,'00981A':7,'0052':8,'00685L':9,'00631L':10};
     if (mktTxt) {
-      const mktRows = parseCSV(mktTxt).slice(1);
-      mktRows.forEach(r => {
-        const dateOnly = (r[0]||'').trim().split(' ')[0];
-        const d = new Date(dateOnly);
-        const spy = num(r[2]);
-        if (!isNaN(d) && spy && d.getFullYear() === now.getFullYear()) {
-          spyData[d.getMonth()] = parseFloat(((spy / SPY_BASE - 1) * 100).toFixed(2));
-        }
-      });
-    }
-
-    // 備援VIX從Google Sheet
-    if (!vixVal && mktTxt) {
       const mktRows = parseCSV(mktTxt);
-      if (mktRows.length > 1) vixVal = num(mktRows[mktRows.length-1][1]) || null;
+      if (mktRows.length > 1) {
+        const last = mktRows[mktRows.length - 1];
+        vixVal = num(last[1]) || null;
+        // 台股ETF漲跌（百分比）
+        Object.entries(ETF_COLS).forEach(([code, col]) => {
+          const v = num(last[col]);
+          if (v != null && !isNaN(v)) twChangeMap[code] = v;
+        });
+        // SPY月線
+        const SPY_BASE = 678.06;
+        spyData = new Array(12).fill(null);
+        // 寫死1-4月
+        [[0,690.09],[1,684.12],[2,648.57],[3,718.66]].forEach(([m,p]) => {
+          spyData[m] = parseFloat(((p/SPY_BASE-1)*100).toFixed(2));
+        });
+        // 5月以後從Sheet補
+        mktRows.slice(1).forEach(r => {
+          const d = new Date((r[0]||'').trim().split(' ')[0]);
+          const spy = num(r[2]);
+          if (!isNaN(d) && spy && d.getFullYear() === now.getFullYear() && d.getMonth() >= 4) {
+            spyData[d.getMonth()] = parseFloat(((spy/SPY_BASE-1)*100).toFixed(2));
+          }
+        });
+      }
     }
-
-    console.log('spyData:', spyData, 'vixVal:', vixVal);
+    console.log('twChangeMap:', twChangeMap, 'vixVal:', vixVal, 'spyData:', spyData);
 
     // 每日股價：{ 代號 -> [{ date, price }] } 按日期排序
     const dailyMap = {}; // { 代號: [{date, price}] }
@@ -1467,9 +1435,7 @@ async function loadAll() {
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="color:var(--muted)">無資料</td></tr>';
 
-    // 台股ETF即時漲跌
-    const twCodes = etfList.map(s => s.code);
-    const twChangeMap = twCodes.length > 0 ? await fetchTWStockChange(twCodes) : {};
+    // 台股ETF（漲跌已從市場數據讀取）
 
     // 台股ETF
     document.getElementById('etfTable').innerHTML = etfList.map(s => {
