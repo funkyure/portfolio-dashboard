@@ -977,18 +977,18 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
     {
       label: '實際報酬',
       data: actualData,
-      borderColor: '#34d399',
-      backgroundColor: 'rgba(52,211,153,0.08)',
+      borderColor: '#60a5fa',
+      backgroundColor: 'rgba(96,165,250,0.08)',
       fill: true, tension: 0.3,
       pointRadius: actualData.map(v => v != null ? 4 : 0),
-      pointBackgroundColor: '#34d399',
+      pointBackgroundColor: '#60a5fa',
       pointBorderColor: '#080d14', pointBorderWidth: 2,
       spanGaps: true, yAxisID: 'y'
     },
     {
       label: '預算目標',
       data: budgetData,
-      borderColor: 'rgba(96,165,250,0.4)',
+      borderColor: 'rgba(96,165,250,0.3)',
       borderDash: [6, 4],
       backgroundColor: 'transparent',
       tension: 0, pointRadius: 0, spanGaps: true, yAxisID: 'y'
