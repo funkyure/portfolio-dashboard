@@ -609,6 +609,62 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     </div>
   </div>
 
+  <!-- 10年目標進度 -->
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0;">🎯 10年目標進度</div>
+      <div style="font-size:12px; color:var(--muted);">目標：NT$5,000萬</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:10px;">
+      <div style="flex:1; height:12px; background:rgba(148,163,184,0.1); border-radius:6px; overflow:hidden;">
+        <div id="goalBar" style="height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#34d399); border-radius:6px; transition:width 1.2s ease;"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:600; color:var(--green); min-width:60px;" id="goalPct">--%</div>
+    </div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; font-size:12px; color:var(--muted);">
+      <span>現在淨資產 <span id="goalCurrent" style="color:var(--text);">--</span></span>
+      <span>距離目標 <span id="goalRemain" style="color:var(--yellow);">--</span></span>
+      <span>預估達成 <span id="goalETA" style="color:var(--blue);">--</span>（以10%年化）</span>
+    </div>
+  </div>
+
+  <!-- 500%斷路器 -->
+  <div class="card" id="breakerCard" style="margin-bottom:20px; border-color:rgba(52,211,153,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="section-title" style="margin-bottom:6px;">🔌 質借斷路器監控</div>
+        <div style="font-size:12px; color:var(--muted);">低於500% → 停止增貸 ｜ 低於140% → 追繳線</div>
+      </div>
+      <div id="breakerStatus" style="font-size:1.4rem; font-weight:700; color:var(--green);">正常運作</div>
+    </div>
+    <div style="margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" class="metric-5col">
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">維持率（含基金）</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerMaintain">--</div>
+        <div style="height:8px; background:rgba(148,163,184,0.1); border-radius:4px; margin-top:8px; overflow:hidden; position:relative;">
+          <!-- 區間標記 -->
+          <div style="position:absolute; left:0; top:0; height:100%; width:${140/900*100}%; background:rgba(248,113,113,0.3);"></div>
+          <div id="breakerBar" style="height:100%; width:0%; border-radius:4px; transition:width 1.2s ease; position:relative; z-index:1;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:4px;">
+          <span style="color:var(--red);">▲140% 追繳</span>
+          <span style="color:var(--yellow);">500% 斷路</span>
+          <span style="color:var(--green);">600%+ 安全</span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距追繳線緩衝</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerBuffer">--</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">資產可跌幅度</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距斷路器空間</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerGap">--</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">距500%還有</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 情緒指標 & 壓力測試 -->
   <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col">
 
@@ -1606,20 +1662,88 @@ async function loadAll() {
       if (fgLEl) { fgLEl.textContent = fgText; fgLEl.style.color = fgColor; }
     } else if (fgEl) { fgEl.textContent = '--'; if(fgLEl) fgLEl.textContent = '無法取得'; }
 
-    // ── 壓力測試（全持倉，股票佔比+債券各自估計跌幅）──
-    // 假設大盤跌X%時：股票跌X%，債券跌X%*0.3（負相關但也受影響）
-    window._stressData = { grandTotal, usStockTWD, twETFV, twFundV, bondTWD };
+    // ── 10年目標進度 ──
+    const GOAL = 50000000; // 5000萬
+    const goalPct = netAsset / GOAL * 100;
+    const goalBar = document.getElementById('goalBar');
+    if (goalBar) goalBar.style.width = Math.min(goalPct, 100) + '%';
+    const goalPctEl = document.getElementById('goalPct');
+    if (goalPctEl) goalPctEl.textContent = goalPct.toFixed(1) + '%';
+    const goalCurrentEl = document.getElementById('goalCurrent');
+    if (goalCurrentEl) goalCurrentEl.textContent = 'NT$' + fmt(netAsset);
+    const goalRemainEl = document.getElementById('goalRemain');
+    if (goalRemainEl) goalRemainEl.textContent = 'NT$' + fmt(GOAL - netAsset);
+    // 預估達成：以10%年化，計算需要幾年
+    const goalYears = Math.log(GOAL / netAsset) / Math.log(1.1);
+    const goalETAEl = document.getElementById('goalETA');
+    if (goalETAEl) {
+      const eta = new Date();
+      eta.setFullYear(eta.getFullYear() + Math.floor(goalYears));
+      goalETAEl.textContent = eta.getFullYear() + '年（約' + goalYears.toFixed(1) + '年後）';
+    }
+
+    // ── 斷路器監控 ──
+    const BREAKER = 5.0;  // 500%
+    const MARGIN_CALL_F = 1.4; // 140%
+    const breakerCard = document.getElementById('breakerCard');
+    const breakerMaintainEl = document.getElementById('breakerMaintain');
+    const breakerBarEl = document.getElementById('breakerBar');
+    const breakerStatusEl = document.getElementById('breakerStatus');
+    const breakerBufferEl = document.getElementById('breakerBuffer');
+    const breakerGapEl = document.getElementById('breakerGap');
+    if (maintainFR && breakerMaintainEl) {
+      breakerMaintainEl.textContent = (maintainFR*100).toFixed(0) + '%';
+      // 進度條：0%=0, 140%=15%, 500%=55%, 900%=100%
+      const barPct = Math.min(maintainFR / 9, 1) * 100;
+      if (breakerBarEl) {
+        breakerBarEl.style.width = barPct + '%';
+        if (maintainFR < MARGIN_CALL_F)    { breakerBarEl.style.background = 'var(--red)';    }
+        else if (maintainFR < BREAKER)      { breakerBarEl.style.background = 'var(--yellow)'; }
+        else if (maintainFR < 6)            { breakerBarEl.style.background = 'var(--yellow)'; }
+        else                                { breakerBarEl.style.background = 'var(--green)';  }
+      }
+      // 狀態
+      let bStatus, bColor, bBorder;
+      if (maintainFR < MARGIN_CALL_F)      { bStatus='⚠️ 追繳警示！';  bColor='var(--red)';    bBorder='rgba(248,113,113,0.5)'; }
+      else if (maintainFR < BREAKER)        { bStatus='🔴 停止增貸';    bColor='var(--red)';    bBorder='rgba(248,113,113,0.3)'; }
+      else if (maintainFR < 6)              { bStatus='🟡 預警區間';    bColor='var(--yellow)'; bBorder='rgba(251,191,36,0.3)';  }
+      else                                  { bStatus='🟢 正常運作';    bColor='var(--green)';  bBorder='rgba(52,211,153,0.3)';  }
+      if (breakerStatusEl) { breakerStatusEl.textContent = bStatus; breakerStatusEl.style.color = bColor; }
+      if (breakerCard)     breakerCard.style.borderColor = bBorder;
+      // 緩衝：(維持率-140%)/維持率
+      const buffer = (maintainFR - MARGIN_CALL_F) / maintainFR * 100;
+      if (breakerBufferEl) {
+        breakerBufferEl.textContent = buffer.toFixed(1) + '%';
+        breakerBufferEl.style.color = buffer < 20 ? 'var(--red)' : buffer < 40 ? 'var(--yellow)' : 'var(--green)';
+      }
+      // 距斷路器
+      const gap = (maintainFR - BREAKER) * 100;
+      if (breakerGapEl) {
+        breakerGapEl.textContent = (gap > 0 ? '+' : '') + gap.toFixed(0) + '%';
+        breakerGapEl.style.color = gap < 0 ? 'var(--red)' : gap < 100 ? 'var(--yellow)' : 'var(--green)';
+      }
+    }
+
+    // ── 壓力測試（加入台股維持率計算）──
+    window._stressData = { grandTotal, usStockTWD, twETFV, twFundV, bondTWD, twPledge, maintainFR };
     window.stressTest = function(drop) {
       const d = window._stressData;
       if (!d?.grandTotal) { document.getElementById('stressResult').textContent = '資料讀取中'; return; }
       const stockImpact = (d.usStockTWD + d.twETFV + d.twFundV) * drop;
       const bondImpact  = (d.bondTWD || 0) * drop * 0.3;
       const total = stockImpact + bondImpact;
-      const newVal = d.grandTotal - total;
+      const newTotal = d.grandTotal - total;
+      // 台股維持率變化（質借金額固定，台股市值下跌）
+      const newTwVal = (d.twETFV + d.twFundV) * (1 - drop);
+      const newMaintain = d.twPledge > 0 ? newTwVal / d.twPledge : null;
+      const maintainNote = newMaintain
+        ? `維持率（含基金） <span style="color:${newMaintain < 1.4 ? 'var(--red)' : newMaintain < 5 ? 'var(--yellow)' : 'var(--green)'};">${(newMaintain*100).toFixed(0)}%</span>${newMaintain < 1.4 ? ' ⚠️ 觸發追繳！' : newMaintain < 5 ? ' ⚠️ 觸發斷路器！' : ''}`
+        : '';
       document.getElementById('stressResult').innerHTML =
         `股票損失 <span style="color:var(--red)">-NT$${fmt(stockImpact)}</span><br>` +
         `債券損失 <span style="color:var(--yellow)">-NT$${fmt(bondImpact)}</span><br>` +
-        `<b>估算總資產 <span style="color:var(--yellow)">NT$${fmt(newVal)}</span></b>`;
+        `<b>估算總資產 <span style="color:var(--yellow)">NT$${fmt(newTotal)}</span></b><br>` +
+        (maintainNote ? maintainNote : '');
     };
 
     // 台股基金（基金今日漲跌和今年以來從基金淨值tab讀）
