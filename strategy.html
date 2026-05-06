@@ -133,15 +133,14 @@
       border: 1px solid rgba(96,165,250,0.15);
       border-radius: 16px; padding: 20px 28px;
       margin-bottom: 48px;
-      display: grid;
-      grid-template-columns: auto 1px repeat(4, 1fr);
-      gap: 16px; align-items: center;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
     }
     @media(max-width:768px){
-      .snapshot { grid-template-columns: 1fr 1fr; }
+      .snapshot { gap: 16px; }
       .snapshot-divider { display: none; }
     }
-    @media(max-width:400px){ .snapshot { grid-template-columns: 1fr; } }
     .snapshot-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
     .snapshot-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; }
     .snapshot-divider { width: 1px; height: 40px; background: var(--border2); }
@@ -862,7 +861,7 @@ async function loadSnapshot() {
     document.getElementById('s-netAsset').textContent = 'NT$' + fmt(netAsset);
     document.getElementById('s-goalPct').textContent = goalPct.toFixed(1) + '%';
     document.getElementById('s-carrySpread').textContent = carrySpread != null ? (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%' : '--';
-    document.getElementById('s-maintain').textContent = maintainFR ? (maintainFR*100).toFixed(0) + '%' : '--';
+    document.getElementById('s-maintain').textContent = maintainFR ? (maintainFR > 10 ? maintainFR.toFixed(0) : (maintainFR*100).toFixed(0)) + '%' : '--';
 
     // ── 快照 ──
     const now = new Date();
