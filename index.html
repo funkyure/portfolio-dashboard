@@ -970,9 +970,7 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
           position: 'top', align: 'end',
           labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 },
             generateLabels: chart => chart.data.datasets.map((ds, i) => ({
-              text: ds.yAxisID === 'y2'
-                ? `%: ${ds.label}`
-                : `NT$: ${ds.label}`,
+              text: ds.yAxisID === 'y2' ? `%: ${ds.label}` : ds.label,
               fillStyle: ds.borderColor,
               strokeStyle: ds.borderColor,
               fontColor: '#94a3b8',
@@ -991,26 +989,26 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   });
 }
 
-// 台股ETF今日漲跌：Yahoo Finance
 async function fetchTWStockChange(codes) {
   const result = {};
-  // 上市ETF用.TW，上櫃用.TWO
-  const otcCodes = ['00981A']; // 上櫃
+  const otcCodes = ['00981A'];
   await Promise.all(codes.map(async code => {
     try {
       const suffix = otcCodes.includes(code) ? '.TWO' : '.TW';
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=2d`;
-      const r = await fetch(url);
-      console.log(`${code}: status=${r.status}`);
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=2d`);
       if (!r.ok) return;
       const j = await r.json();
       const meta = j?.chart?.result?.[0]?.meta;
       if (!meta) return;
       const cur  = meta.regularMarketPrice;
       const prev = meta.chartPreviousClose;
-      if (cur && prev && prev > 0) result[code] = (cur - prev) / prev * 100;
-    } catch {}
+      if (cur && prev && prev > 0) {
+        result[code] = (cur - prev) / prev * 100;
+        console.log(`${code}: ${prev} → ${cur} = ${result[code].toFixed(2)}%`);
+      }
+    } catch(e) { console.log(`${code} 失敗:`, e); }
   }));
+  console.log('台股漲跌結果:', result);
   return result;
 }
 async function fetchFearGreed() {
