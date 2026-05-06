@@ -288,6 +288,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <button onclick="window.location.href=window.location.href.split('?')[0]+'?t='+Date.now()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:8px 16px; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
   </div>
 
+
   <!-- YTD 頂部大格 -->
   <div class="card" style="margin-bottom:20px; background:linear-gradient(135deg, rgba(52,211,153,0.06), rgba(96,165,250,0.06)); border-color:rgba(52,211,153,0.2);">
     <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
@@ -348,6 +349,43 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="card-label">質借維持率</div>
       <div class="card-value" id="maintainCardVal" style="color:var(--green);">--</div>
       <div class="card-sub">追繳緩衝 <span id="bufferCardVal" style="color:var(--red)">--</span></div>
+    </div>
+  </div>
+
+  <!-- 500%斷路器 -->
+  <div class="card" id="breakerCard" style="margin-bottom:20px; border-color:rgba(52,211,153,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="section-title" style="margin-bottom:6px;">🔌 質借斷路器監控</div>
+        <div style="font-size:12px; color:var(--muted);">低於500% → 停止增貸 ｜ 低於140% → 追繳線</div>
+      </div>
+      <div id="breakerStatus" style="font-size:1.4rem; font-weight:700; color:var(--green);">正常運作</div>
+    </div>
+    <div style="margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" class="metric-5col">
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">維持率（含基金）</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerMaintain">--</div>
+        <div style="height:8px; background:rgba(148,163,184,0.1); border-radius:4px; margin-top:8px; overflow:hidden; position:relative;">
+          <!-- 區間標記 -->
+          <div style="position:absolute; left:0; top:0; height:100%; width:${140/900*100}%; background:rgba(248,113,113,0.3);"></div>
+          <div id="breakerBar" style="height:100%; width:0%; border-radius:4px; transition:width 1.2s ease; position:relative; z-index:1;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:4px;">
+          <span style="color:var(--red);">▲140% 追繳</span>
+          <span style="color:var(--yellow);">500% 斷路</span>
+          <span style="color:var(--green);">600%+ 安全</span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距追繳線緩衝</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerBuffer">--</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">資產可跌幅度</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距斷路器空間</div>
+        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerGap">--</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">距500%還有</div>
+      </div>
     </div>
   </div>
 
@@ -609,62 +647,6 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     </div>
   </div>
 
-  <!-- 10年目標進度 -->
-  <div class="card" style="margin-bottom:20px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-      <div class="section-title" style="margin-bottom:0;">🎯 10年目標進度</div>
-      <div style="font-size:12px; color:var(--muted);">目標：NT$5,000萬</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px; margin-bottom:10px;">
-      <div style="flex:1; height:12px; background:rgba(148,163,184,0.1); border-radius:6px; overflow:hidden;">
-        <div id="goalBar" style="height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#34d399); border-radius:6px; transition:width 1.2s ease;"></div>
-      </div>
-      <div style="font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:600; color:var(--green); min-width:60px;" id="goalPct">--%</div>
-    </div>
-    <div style="display:flex; gap:24px; flex-wrap:wrap; font-size:12px; color:var(--muted);">
-      <span>現在淨資產 <span id="goalCurrent" style="color:var(--text);">--</span></span>
-      <span>距離目標 <span id="goalRemain" style="color:var(--yellow);">--</span></span>
-      <span>預估達成 <span id="goalETA" style="color:var(--blue);">--</span>（以10%年化）</span>
-    </div>
-  </div>
-
-  <!-- 500%斷路器 -->
-  <div class="card" id="breakerCard" style="margin-bottom:20px; border-color:rgba(52,211,153,0.3);">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <div>
-        <div class="section-title" style="margin-bottom:6px;">🔌 質借斷路器監控</div>
-        <div style="font-size:12px; color:var(--muted);">低於500% → 停止增貸 ｜ 低於140% → 追繳線</div>
-      </div>
-      <div id="breakerStatus" style="font-size:1.4rem; font-weight:700; color:var(--green);">正常運作</div>
-    </div>
-    <div style="margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" class="metric-5col">
-      <div style="text-align:center;">
-        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">維持率（含基金）</div>
-        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerMaintain">--</div>
-        <div style="height:8px; background:rgba(148,163,184,0.1); border-radius:4px; margin-top:8px; overflow:hidden; position:relative;">
-          <!-- 區間標記 -->
-          <div style="position:absolute; left:0; top:0; height:100%; width:${140/900*100}%; background:rgba(248,113,113,0.3);"></div>
-          <div id="breakerBar" style="height:100%; width:0%; border-radius:4px; transition:width 1.2s ease; position:relative; z-index:1;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted); margin-top:4px;">
-          <span style="color:var(--red);">▲140% 追繳</span>
-          <span style="color:var(--yellow);">500% 斷路</span>
-          <span style="color:var(--green);">600%+ 安全</span>
-        </div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距追繳線緩衝</div>
-        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerBuffer">--</div>
-        <div style="font-size:11px; color:var(--muted); margin-top:4px;">資產可跌幅度</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">距斷路器空間</div>
-        <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerGap">--</div>
-        <div style="font-size:11px; color:var(--muted); margin-top:4px;">距500%還有</div>
-      </div>
-    </div>
-  </div>
-
   <!-- 情緒指標 & 壓力測試 -->
   <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col">
 
@@ -721,6 +703,26 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     </div>
 
   </div>
+  <!-- 10年目標進度 -->
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+      <div class="section-title" style="margin-bottom:0;">🎯 10年目標進度</div>
+      <div style="font-size:12px; color:var(--muted);">目標：NT$5,000萬</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:10px;">
+      <div style="flex:1; height:12px; background:rgba(148,163,184,0.1); border-radius:6px; overflow:hidden;">
+        <div id="goalBar" style="height:100%; width:0%; background:linear-gradient(90deg,#60a5fa,#34d399); border-radius:6px; transition:width 1.2s ease;"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:600; color:var(--green); min-width:60px;" id="goalPct">--%</div>
+    </div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap; font-size:12px; color:var(--muted);">
+      <span>現在淨資產 <span id="goalCurrent" style="color:var(--text);">--</span></span>
+      <span>距離目標 <span id="goalRemain" style="color:var(--yellow);">--</span></span>
+      <span>預估達成 <span id="goalETA" style="color:var(--blue);">--</span>（以10%年化）</span>
+    </div>
+  </div>
+
+
   <div class="footer" id="footerNote"></div>
 </div>
 
