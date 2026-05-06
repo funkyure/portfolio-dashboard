@@ -502,6 +502,27 @@ tr:hover td { background: rgba(96,165,250,0.03); }
           <div style="font-size:10px;color:var(--muted);" id="stockTwTgtBig">目標 --</div>
         </div>
       </div>
+      <!-- 利差健康度 -->
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">利差健康度（Carry Spread）</div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">息收覆蓋率</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="carryCoverageVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">債息/融資利息</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">利差</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="carrySpreadVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">債券殖利率-5.14%</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">債券年化息收</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="bondIntVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">USD/年</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 台灣ETF -->
@@ -1087,7 +1108,7 @@ setTimeout(() => location.reload(), 15 * 60 * 1000);
 async function loadAll() {
   try {
     // 所有資料同時並發抓取
-    const [totalRes, chgRes, dailyRes, ytdRes, navRes, trendRes, mktRes, fgResult] = await Promise.all([
+    const [totalRes, chgRes, dailyRes, ytdRes, navRes, trendRes, mktRes, bondIntRes, fgResult] = await Promise.all([
       fetch(csvUrl('總表')),
       fetch(csvUrl('資產變化')),
       fetch(csvUrl('每日股價')),
@@ -1095,18 +1116,20 @@ async function loadAll() {
       fetch(csvUrl('基金淨值')),
       fetch(csvUrl('每日淨值')),
       fetch(csvUrl('市場數據')),
+      fetch(csvUrl('債券利息')),
       fetchFearGreed()
     ]);
 
     if (!totalRes.ok || !chgRes.ok) throw new Error('fetch failed');
 
     // 同時解析所有文字
-    const [totalTxt, chgTxt, dailyTxt, ytdTxt, navTxt, trendTxt, mktTxt] = await Promise.all([
+    const [totalTxt, chgTxt, dailyTxt, ytdTxt, navTxt, trendTxt, mktTxt, bondIntTxt] = await Promise.all([
       totalRes.text(), chgRes.text(), dailyRes.ok ? dailyRes.text() : Promise.resolve(''),
       ytdRes.ok ? ytdRes.text() : Promise.resolve(''),
       navRes.ok ? navRes.text() : Promise.resolve(''),
       trendRes.ok ? trendRes.text() : Promise.resolve(''),
-      mktRes.ok ? mktRes.text() : Promise.resolve('')
+      mktRes.ok ? mktRes.text() : Promise.resolve(''),
+      bondIntRes.ok ? bondIntRes.text() : Promise.resolve('')
     ]);
 
     const total   = parseCSV(totalTxt);
@@ -1664,7 +1687,36 @@ async function loadAll() {
       if (fgLEl) { fgLEl.textContent = fgText; fgLEl.style.color = fgColor; }
     } else if (fgEl) { fgEl.textContent = '--'; if(fgLEl) fgLEl.textContent = '無法取得'; }
 
-    // ── 10年目標進度 ──
+    // ── 債券利息年化計算 ──
+    let bondIntAnnual = 0; // USD
+    if (bondIntTxt) {
+      const bondIntRows = parseCSV(bondIntTxt);
+      bondIntRows.forEach(r => {
+        const v = num(r[1]); // B欄
+        if (v) bondIntAnnual += v;
+      });
+    }
+    // IB融資年化利息支出
+    const ibLevAnnualCost = Math.abs(ibLev || 0) * 0.0514;
+    // 息收覆蓋率
+    const carryCoverage = ibLevAnnualCost > 0 ? bondIntAnnual / ibLevAnnualCost : null;
+    // 利差 = 債券年化殖利率 - IB融資利率
+    const bondYield = bondTWD > 0 ? (bondIntAnnual * fx) / bondTWD * 100 : null;
+    const carrySpread = bondYield ? bondYield - 5.14 : null;
+    // ── 利差健康度 ──
+    const ccEl = document.getElementById('carryCoverageVal');
+    const csEl = document.getElementById('carrySpreadVal');
+    const biEl = document.getElementById('bondIntVal');
+    if (biEl) biEl.textContent = bondIntAnnual ? 'US$' + fmt(bondIntAnnual) : '--';
+    if (ccEl && carryCoverage) {
+      ccEl.textContent = carryCoverage.toFixed(2) + 'x';
+      ccEl.style.color = carryCoverage >= 1 ? 'var(--green)' : 'var(--red)';
+    }
+    if (csEl && carrySpread != null) {
+      csEl.textContent = (carrySpread >= 0 ? '+' : '') + carrySpread.toFixed(2) + '%';
+      csEl.style.color = carrySpread >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+
     const GOAL = 50000000; // 5000萬
     const goalPct = netAsset / GOAL * 100;
     const goalBar = document.getElementById('goalBar');
