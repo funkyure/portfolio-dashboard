@@ -1617,7 +1617,10 @@ async function loadAll() {
 
     // ATH 從資產變化 C11（YTD高點）和 C12（淨資產高點）
     const ytdATH = num(yearChg[10]?.[2]);
-    const netATH = num(yearChg[11]?.[2]); // C12 = row11, col2
+    const netATH = num(yearChg[11]?.[2]);
+    console.log('yearChg[10]:', JSON.stringify(yearChg[10]));
+    console.log('yearChg[11]:', JSON.stringify(yearChg[11]));
+    console.log('ytdATH:', ytdATH, 'netATH:', netATH, 'netAsset:', netAsset);
     if (ytdATH && ytd26 != null) {
       const dd = (ytd26 - ytdATH) / Math.abs(ytdATH) * 100;
       const ddText  = dd.toFixed(1) + '%';
