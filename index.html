@@ -92,12 +92,15 @@ body {
   .charts-row  { grid-template-columns: 1fr !important; }
   .tables-row  { grid-template-columns: 1fr !important; }
   .metric-2col { grid-template-columns: 1fr !important; }
-  .metric-5col { grid-template-columns: repeat(3,1fr) !important; }
+  .metric-5col { grid-template-columns: repeat(2,1fr) !important; }
+  .breaker-grid { grid-template-columns: 1fr !important; }
+  .emotion-grid { grid-template-columns: 1fr !important; }
 }
 @media(max-width:600px){
   .hide-mobile { display: none !important; }
   table { font-size: 11px; }
   td, th { padding: 8px 3px !important; }
+  .stress-btn { padding: 6px 10px; font-size: 11px; }
 }
 
 .card {
@@ -367,7 +370,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       </div>
       <div id="breakerStatus" style="font-size:1.4rem; font-weight:700; color:var(--green);">正常運作</div>
     </div>
-    <div style="margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" class="metric-5col">
+    <div style="margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px;" class="metric-5col breaker-grid">
       <div style="text-align:center;">
         <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">維持率（含基金）</div>
         <div style="font-size:1.8rem; font-weight:700; font-family:'DM Serif Display',serif;" id="breakerMaintain">--</div>
@@ -675,7 +678,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   </div>
 
   <!-- 情緒指標 & 壓力測試 -->
-  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col">
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;" class="metric-5col emotion-grid">
 
     <!-- VIX -->
     <div class="card" style="text-align:center;">
