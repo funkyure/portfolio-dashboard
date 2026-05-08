@@ -1512,10 +1512,7 @@ async function loadAll() {
     document.getElementById('maintainFTgtBig').textContent = '目標 '+(maintainFTgt||'--');
     setPill('maintainFPillSub', maintainFSt);
 
-    // YTD 大格
-    const ibkr26 = num(yearChg[3][1]);
-    const tw26   = num(yearChg[3][2]);
-    const etf26  = num(yearChg[3][3]);
+    // YTD 大格（ibkr26/tw26/etf26 已在上方宣告）
     // 報酬率 = ytd26 / (grandTotal - ytd26)
     const initVal       = grandTotal - (ytd26||0);  // 期初總資產
     const initNetVal    = netAsset   - (ytd26||0);  // 期初淨資產
