@@ -92,7 +92,7 @@ body {
   .charts-row  { grid-template-columns: 1fr !important; }
   .tables-row  { grid-template-columns: 1fr !important; }
   .metric-2col { grid-template-columns: 1fr !important; }
-  .metric-5col { grid-template-columns: repeat(2,1fr) !important; }
+  .metric-5col { grid-template-columns: repeat(3,1fr) !important; }
 }
 @media(max-width:600px){
   .hide-mobile { display: none !important; }
@@ -325,7 +325,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   </div>
 
   <!-- Key Metrics 5格 -->
-  <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:20px;" class="metric-5col">
+  <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:16px; margin-bottom:20px;" class="metric-5col">
     <div class="card">
       <div class="card-label">IBKR 投組淨值</div>
       <div class="card-value blue" id="ibNetVal">--</div>
@@ -342,9 +342,14 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="card-sub">淨資產 <span id="netAssetVal" style="color:var(--green)">--</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--yellow);">
-      <div class="card-label">高點回撤 (DD)</div>
+      <div class="card-label">YTD 回撤（當年度）</div>
       <div class="card-value" id="ddCardVal" style="color:var(--yellow);">--</div>
-      <div class="card-sub">歷史高點 <span id="athCardVal" style="color:var(--muted)">--</span></div>
+      <div class="card-sub">YTD高點 <span id="athCardVal" style="color:var(--muted)">--</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--purple);">
+      <div class="card-label">淨資產回撤（累積）</div>
+      <div class="card-value" id="ddNetCardVal" style="color:var(--purple);">--</div>
+      <div class="card-sub">淨資產高點 <span id="athNetCardVal" style="color:var(--muted)">--</span></div>
     </div>
     <div class="card" style="border-left:3px solid var(--green);">
       <div class="card-label">質借維持率</div>
@@ -1610,8 +1615,9 @@ async function loadAll() {
       }
     } catch(e) { console.log('每日淨值讀取失敗', e); }
 
-    // ATH 從資產變化 C11 讀取（row10, col2）
+    // ATH 從資產變化 C11（YTD高點）和 C12（淨資產高點）
     const ytdATH = num(yearChg[10]?.[2]);
+    const netATH = num(yearChg[11]?.[2]); // C12 = row11, col2
     if (ytdATH && ytd26 != null) {
       const dd = (ytd26 - ytdATH) / Math.abs(ytdATH) * 100;
       const ddText  = dd.toFixed(1) + '%';
@@ -1624,6 +1630,16 @@ async function loadAll() {
         const el = document.getElementById(id);
         if (el) { el.textContent = ddText; el.style.color = ddColor; }
       });
+    }
+    // 淨資產 ATH/DD
+    if (netATH && netAsset) {
+      const ddNet = (netAsset - netATH) / Math.abs(netATH) * 100;
+      const ddNetText  = ddNet.toFixed(1) + '%';
+      const ddNetColor = ddNet < -10 ? 'var(--red)' : ddNet < 0 ? 'var(--yellow)' : 'var(--green)';
+      const athNetEl = document.getElementById('athNetCardVal');
+      const ddNetEl  = document.getElementById('ddNetCardVal');
+      if (athNetEl) athNetEl.textContent = 'NT$' + fmt(netATH);
+      if (ddNetEl)  { ddNetEl.textContent = ddNetText; ddNetEl.style.color = ddNetColor; }
     }
 
     // 報酬率回推：兩種分母（已在上方宣告）
