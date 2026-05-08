@@ -652,7 +652,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   <!-- Tables -->
   <div class="tables-row">
     <div class="table-card">
-      <div class="table-title">🇺🇸 美股部位</div>
+      <div class="table-title">🇺🇸 美股部位 <span style="font-size:10px; color:var(--muted); font-weight:400; margin-left:8px;">⚡ = 槓桿ETF</span></div>
       <table>
         <thead><tr>
           <th>代號</th><th>市值</th><th class="hide-mobile">現價</th>
@@ -662,7 +662,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       </table>
     </div>
     <div class="table-card">
-      <div class="table-title">🇹🇼 台股 ETF</div>
+      <div class="table-title">🇹🇼 台股 ETF <span style="font-size:10px; color:var(--muted); font-weight:400; margin-left:8px;">⚡ = 槓桿ETF</span></div>
       <table>
         <thead><tr>
           <th>代號</th><th>市值</th><th class="hide-mobile">現價</th>
@@ -920,27 +920,47 @@ function buildAllocChart(data) {
   }).join('');
 }
 
-function buildYearlyChart(y24, y25, y26) {
+function buildYearlyChart(y24, y25, y26, ibkr24, ibkr25, ibkr26, tw24, tw25, tw26, etf24, etf25, etf26) {
   if (yearlyChart) yearlyChart.destroy();
   yearlyChart = new Chart(document.getElementById('yearlyChart'), {
     type: 'bar',
     data: {
       labels: ['2024', '2025', '2026 YTD'],
-      datasets: [{
-        data: [y24/1e6, y25/1e6, y26/1e6].map(v => v ? parseFloat(v.toFixed(2)) : 0),
-        backgroundColor: ['#4a6080','#60a5fa','#34d399'],
-        borderRadius: 8, barThickness: 44
-      }]
+      datasets: [
+        {
+          label: 'IBKR',
+          data: [ibkr24||0, ibkr25||0, ibkr26||0].map(v => parseFloat((v/1e6).toFixed(2))),
+          backgroundColor: 'rgba(96,165,250,0.8)',
+          borderRadius: 4, stack: 'stack'
+        },
+        {
+          label: '台股基金',
+          data: [tw24||0, tw25||0, tw26||0].map(v => parseFloat((v/1e6).toFixed(2))),
+          backgroundColor: 'rgba(167,139,250,0.8)',
+          borderRadius: 4, stack: 'stack'
+        },
+        {
+          label: 'ETF',
+          data: [etf24||0, etf25||0, etf26||0].map(v => parseFloat((v/1e6).toFixed(2))),
+          backgroundColor: 'rgba(52,211,153,0.8)',
+          borderRadius: 4, stack: 'stack'
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true, ticks: { callback: v => 'NT$'+v+'M' } },
-        x: { grid: { display: false } }
+        y: { beginAtZero: true, stacked: true, ticks: { callback: v => 'NT$'+v+'M' } },
+        x: { stacked: true, grid: { display: false } }
       },
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` NT$ ${ctx.parsed.y}M` } }
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`,
+            footer: items => ` 合計: NT$${items.reduce((a,b) => a + b.parsed.y, 0).toFixed(2)}M`
+          }
+        }
       }
     }
   });
@@ -1417,7 +1437,10 @@ async function loadAll() {
     ]);
 
     // 年度報酬
-    buildYearlyChart(ytd24||0, ytd25||0, ytd26||0);
+    const ibkr24 = num(yearChg[1][1]), ibkr25 = num(yearChg[2][1]), ibkr26 = num(yearChg[3][1]);
+    const tw24   = num(yearChg[1][2]), tw25   = num(yearChg[2][2]), tw26   = num(yearChg[3][2]);
+    const etf24  = num(yearChg[1][3]), etf25  = num(yearChg[2][3]), etf26  = num(yearChg[3][3]);
+    buildYearlyChart(ytd24||0, ytd25||0, ytd26||0, ibkr24, ibkr25, ibkr26, tw24, tw25, tw26, etf24, etf25, etf26);
 
     // ── 三格投組詳情 ──
     function pillStyle(st) {
@@ -1523,7 +1546,7 @@ async function loadAll() {
       const { todayChg, ytdChg } = calcChg(s.ticker, num(s.price));
       const isLev = leveraged.includes(s.ticker);
       return `<tr>
-        <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker}${isLev?` <span style="color:var(--yellow);font-size:10px;border:1px solid var(--yellow);padding:0 3px;border-radius:3px;">⚡</span>`:''} ↗</a></td>
+        <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker} ↗</a></td>
         <td>US${s.val||'--'}</td>
         <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
@@ -1543,7 +1566,7 @@ async function loadAll() {
       const todayFinal = liveChg != null ? liveChg : todayChg;
       const isLev = leveraged.includes(s.code);
       return `<tr>
-        <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code}${isLev?` <span style="color:var(--yellow);font-size:10px;border:1px solid var(--yellow);padding:0 3px;border-radius:3px;">⚡</span>`:''} ↗</a></td>
+        <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code} ↗</a></td>
         <td>${s.val||'--'}</td>
         <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayFinal)}
