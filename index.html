@@ -288,12 +288,10 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="header-sub">IBKR + 台股 + 美債 · 自動同步</div>
     </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
-      <!-- 時間：小字展示，不是按鍵 -->
-      <div id="updateBadge" style="font-size:11px; color:var(--muted); letter-spacing:0.3px;">🕐 讀取中...</div>
-      <!-- 按鈕列 -->
-      <div style="display:flex; gap:8px;">
-        <button onclick="window.location.href='strategy.html'" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); color:var(--purple); padding:7px 14px; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;">📋 投資戰略</button>
-        <button onclick="window.location.href=window.location.href.split('?')[0]+'?t='+Date.now()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:7px 14px; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div id="updateBadge" style="font-size:11px; color:var(--muted);">最後更新 --</div>
+        <button onclick="window.location.href='strategy.html'" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); color:var(--purple); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📋 投資戰略</button>
+        <button onclick="window.location.href=window.location.href.split('?')[0]+'?t='+Date.now()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
       </div>
     </div>
   </div>
