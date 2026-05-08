@@ -1616,10 +1616,13 @@ async function loadAll() {
     } catch(e) { console.log('每日淨值讀取失敗', e); }
 
     // ATH 從資產變化 C11（YTD高點）和 C12（淨資產高點）
-    const ytdATH = num(yearChg[10]?.[2]);
-    const netATH = num(yearChg[11]?.[2]);
-    console.log('yearChg[10]:', JSON.stringify(yearChg[10]));
-    console.log('yearChg[11]:', JSON.stringify(yearChg[11]));
+    // 動態找 YTD ATH 和淨資產 ATH（搜尋B欄標籤）
+    let ytdATH = null, netATH = null;
+    for (const r of yearChg) {
+      const label = (r[1]||'').trim();
+      if (label === 'YTD ATH') ytdATH = num(r[2]);
+      if (label.includes('淨資產') && label.includes('ATH')) netATH = num(r[2]);
+    }
     console.log('ytdATH:', ytdATH, 'netATH:', netATH, 'netAsset:', netAsset);
     if (ytdATH && ytd26 != null) {
       const dd = (ytd26 - ytdATH) / Math.abs(ytdATH) * 100;
