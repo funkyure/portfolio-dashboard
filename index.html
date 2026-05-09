@@ -142,6 +142,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px; padding: 24px;
   margin-bottom: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.risk-card:hover {
+  border-color: rgba(96,165,250,0.4);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.15), 0 8px 32px rgba(96,165,250,0.1);
 }
 .section-title {
   font-size: 14px; font-weight: 600;
@@ -162,7 +167,16 @@ body {
 @media(max-width:900px){ .gauge-grid { grid-template-columns: repeat(3,1fr); } }
 @media(max-width:500px){ .gauge-grid { grid-template-columns: repeat(2,1fr); } }
 
-.gauge-item { text-align: center; }
+.gauge-item {
+  text-align: center;
+  padding: 8px;
+  border-radius: 12px;
+  transition: background 0.2s, transform 0.2s;
+}
+.gauge-item:hover {
+  background: rgba(96,165,250,0.05);
+  transform: translateY(-3px);
+}
 .gauge-circle {
   position: relative; width: 90px; height: 90px;
   margin: 0 auto 10px;
@@ -207,6 +221,11 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px; padding: 24px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chart-card:hover {
+  border-color: rgba(96,165,250,0.4);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.15), 0 8px 32px rgba(96,165,250,0.1);
 }
 .chart-container { position: relative; height: 260px; }
 .alloc-legend {
@@ -222,6 +241,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px; padding: 24px;
   margin-bottom: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.trend-card:hover {
+  border-color: rgba(96,165,250,0.4);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.15), 0 8px 32px rgba(96,165,250,0.1);
 }
 .trend-container { position: relative; height: 200px; }
 
@@ -237,6 +261,11 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px; padding: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.table-card:hover {
+  border-color: rgba(96,165,250,0.4);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.15), 0 8px 32px rgba(96,165,250,0.1);
 }
 .table-title {
   font-size: 13px; font-weight: 600;
@@ -354,17 +383,17 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div class="card-value" id="grandTotalVal">--</div>
       <div class="card-sub">淨資產 <span id="netAssetVal" style="color:var(--green)">--</span></div>
     </div>
-    <div class="card" style="border-left:3px solid var(--yellow);">
+    <div class="card">
       <div class="card-label">YTD 回撤（當年度）</div>
       <div class="card-value" id="ddCardVal" style="color:var(--yellow);">--</div>
       <div class="card-sub">YTD高點 <span id="athCardVal" style="color:var(--muted)">--</span></div>
     </div>
-    <div class="card" style="border-left:3px solid var(--purple);">
+    <div class="card">
       <div class="card-label">淨資產回撤（累積）</div>
       <div class="card-value" id="ddNetCardVal" style="color:var(--purple);">--</div>
       <div class="card-sub">淨資產高點 <span id="athNetCardVal" style="color:var(--muted)">--</span></div>
     </div>
-    <div class="card" style="border-left:3px solid var(--green);">
+    <div class="card">
       <div class="card-label">質借維持率</div>
       <div class="card-value" id="maintainCardVal" style="color:var(--green);">--</div>
       <div class="card-sub">追繳緩衝 <span id="bufferCardVal" style="color:var(--red)">--</span></div>
@@ -372,7 +401,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
   </div>
 
   <!-- 500%斷路器 -->
-  <div class="card" id="breakerCard" style="margin-bottom:20px; border-color:rgba(52,211,153,0.3);">
+  <div class="card" id="breakerCard" style="margin-bottom:20px;">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
       <div>
         <div class="section-title" style="margin-bottom:6px;">🔌 質借斷路器監控</div>
@@ -960,13 +989,15 @@ function buildYearlyChart(y24, y25, y26, ibkr24, ibkr25, ibkr26, tw24, tw25, tw2
       plugins: {
         legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } },
         tooltip: {
+          mode: 'index',
+          intersect: false,
           callbacks: {
             title: items => {
-              const total = items.reduce((a,b) => a + b.parsed.y, 0);
-              return `${items[0].label}　總報酬 NT$${total.toFixed(2)}M`;
+              const total = items.reduce((a,b) => a + (b.parsed.y||0), 0);
+              return [`${items[0].label}`, `總報酬 NT$${total.toFixed(2)}M`];
             },
             label: ctx => {
-              if (ctx.parsed.y === 0) return null;
+              if (!ctx.parsed.y || ctx.parsed.y === 0) return null;
               return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
             }
           },
@@ -1108,10 +1139,15 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
             }))
           }
         },
-        tooltip: { callbacks: { label: ctx => {
-          if (ctx.dataset.yAxisID === 'y2') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
-          return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
-        }}}
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: { label: ctx => {
+            if (ctx.parsed.y == null) return null;
+            if (ctx.dataset.yAxisID === 'y2') return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
+            return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
+          }}
+        }
       }
     }
   });
