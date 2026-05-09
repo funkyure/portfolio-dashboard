@@ -107,12 +107,13 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px; padding: 20px;
-  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 .card:hover {
-  border-color: var(--border2);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(96,165,250,0.12), 0 2px 8px rgba(0,0,0,0.3);
+  border-color: rgba(96,165,250,0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.2), 0 12px 40px rgba(96,165,250,0.15), 0 4px 12px rgba(0,0,0,0.4);
+  background: rgba(13,21,32,1);
   cursor: default;
 }
 .card-label {
@@ -961,12 +962,15 @@ function buildYearlyChart(y24, y25, y26, ibkr24, ibkr25, ibkr26, tw24, tw25, tw2
         tooltip: {
           callbacks: {
             title: items => {
-              const year = items[0].label;
               const total = items.reduce((a,b) => a + b.parsed.y, 0);
-              return `${year}  總報酬 NT$${total.toFixed(2)}M`;
+              return `${items[0].label}　總報酬 NT$${total.toFixed(2)}M`;
             },
-            label: ctx => ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`
-          }
+            label: ctx => {
+              if (ctx.parsed.y === 0) return null;
+              return ` ${ctx.dataset.label}: NT$${ctx.parsed.y}M`;
+            }
+          },
+          filter: item => item.parsed.y !== 0
         }
       }
     }
