@@ -326,6 +326,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <div style="display:flex; align-items:center; gap:10px;">
         <div id="updateBadge" style="font-size:11px; color:var(--muted);">最後更新 --</div>
         <button onclick="window.location.href='strategy.html'" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); color:var(--purple); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📋 投資戰略</button>
+        <button onclick="window.location.href='log.html'" style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:var(--yellow); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📒 交易日誌</button>
         <button onclick="window.location.href=window.location.href.split('?')[0]+'?t='+Date.now()" style="background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.3); color:var(--blue); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">↻ 更新</button>
       </div>
     </div>
@@ -1097,8 +1098,6 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   });
   if (spyData && spyData.some(v => v != null)) datasets.push({
     label: 'S&P500',
-    data: spyData,
-    borderColor: 'rgba(248,113,113,0.9)',
     borderDash: [3, 3],
     backgroundColor: 'transparent',
     tension: 0.3,
