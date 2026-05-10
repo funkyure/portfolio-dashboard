@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>庫存總覽 | Holdings</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#080d14;--bg2:#0d1520;--border:rgba(99,179,237,0.08);--border2:rgba(99,179,237,0.25);--text:#e2e8f0;--muted:#64748b;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;--red:#f87171;--purple:#a78bfa;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(96,165,250,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+    .container{max-width:1100px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 0 28px;flex-wrap:wrap;gap:12px;}
+    .header h1{font-family:'DM Serif Display',serif;font-size:26px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .header-sub{color:var(--muted);font-size:13px;margin-top:4px;}
+    .btn{padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;border:1px solid;transition:all 0.2s;}
+    .btn-blue{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:var(--blue);}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;transition:border-color 0.2s,box-shadow 0.2s;}
+    .card:hover{border-color:var(--border2);box-shadow:0 0 0 1px rgba(96,165,250,0.1),0 8px 32px rgba(96,165,250,0.08);}
+    .section-title{font-size:14px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+    .section-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--blue),var(--purple));border-radius:2px;}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    @media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+    .stat-card{background:rgba(96,165,250,0.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center;}
+    .stat-val{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:4px;}
+    .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{text-align:left;padding:10px 8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+    th.r{text-align:right;}
+    td{padding:12px 8px;font-size:13px;border-bottom:1px solid rgba(148,163,184,0.04);}
+    td.r{text-align:right;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(96,165,250,0.02);}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+    .badge-us{background:rgba(96,165,250,0.12);color:var(--blue);}
+    .badge-tw{background:rgba(251,191,36,0.12);color:var(--yellow);}
+    .badge-fund{background:rgba(167,139,250,0.12);color:var(--purple);}
+    .pnl-bar{height:4px;border-radius:2px;margin-top:4px;min-width:4px;}
+    .loading{text-align:center;color:var(--muted);padding:32px;}
+    .update-time{font-size:11px;color:var(--muted);margin-bottom:16px;}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>📦 庫存總覽</h1>
+      <div class="header-sub">從交易日誌自動計算 · 加權平均成本</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <a href="index.html" class="btn btn-blue">← 返回儀表板</a>
+      <a href="log.html" class="btn" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3);color:var(--yellow);">📒 交易日誌</a>
+      <a href="strategy.html" class="btn" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:var(--purple);">📋 投資戰略</a>
+    </div>
+  </div>
+
+  <!-- 總覽統計 -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="stat-positions" style="color:var(--blue)">--</div><div class="stat-label">持倉檔數</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-cost" style="color:var(--muted)">--</div><div class="stat-label">總成本（TWD）</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-value" style="color:var(--blue)">--</div><div class="stat-label">現值（TWD）</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-pnl" style="color:var(--green)">--</div><div class="stat-label">未實現損益</div></div>
+  </div>
+
+  <!-- 美股 -->
+  <div class="card">
+    <div class="section-title">🇺🇸 美股部位</div>
+    <div class="update-time" id="us-update-time"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>代號</th>
+            <th class="r">持有股數</th>
+            <th class="r">平均成本(USD)</th>
+            <th class="r">現價(USD)</th>
+            <th class="r">總成本(TWD)</th>
+            <th class="r">現值(TWD)</th>
+            <th class="r">未實現損益</th>
+            <th class="r">報酬率</th>
+          </tr>
+        </thead>
+        <tbody id="usTable"><tr><td colspan="8" class="loading">計算中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 台股ETF -->
+  <div class="card">
+    <div class="section-title">🇹🇼 台股 ETF</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>代號</th>
+            <th class="r">持有股數</th>
+            <th class="r">平均成本(TWD)</th>
+            <th class="r">現價(TWD)</th>
+            <th class="r">總成本(TWD)</th>
+            <th class="r">現值(TWD)</th>
+            <th class="r">未實現損益</th>
+            <th class="r">報酬率</th>
+          </tr>
+        </thead>
+        <tbody id="etfTable"><tr><td colspan="8" class="loading">計算中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 台股基金 -->
+  <div class="card">
+    <div class="section-title">🇹🇼 台股基金</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>名稱</th>
+            <th class="r">持有單位</th>
+            <th class="r">平均成本(TWD)</th>
+            <th class="r">現價(TWD)</th>
+            <th class="r">總成本(TWD)</th>
+            <th class="r">現值(TWD)</th>
+            <th class="r">未實現損益</th>
+            <th class="r">報酬率</th>
+          </tr>
+        </thead>
+        <tbody id="fundTable"><tr><td colspan="8" class="loading">計算中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '16nVY0h2M8mDWFU-gubKtYlSHh9Fu4JOlx_n_p0YNwM4';
+
+function csvUrl(tab) {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tab);
+}
+
+function parseCSV(text) {
+  return text.trim().split('\n').map(function(row) {
+    var res = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+      if (row[i] === '"') { inQ = !inQ; }
+      else if (row[i] === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+      else cur += row[i];
+    }
+    res.push(cur.trim());
+    return res;
+  });
+}
+
+function num(s) {
+  if (!s) return 0;
+  var v = parseFloat(String(s).replace(/[^0-9.\-]/g, ''));
+  return isNaN(v) ? 0 : v;
+}
+
+function fmt(n, decimals) {
+  if (n == null || isNaN(n)) return '--';
+  decimals = decimals || 0;
+  return n.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtM(n) {
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return n.toFixed(0);
+}
+
+function pnlColor(v) {
+  return v > 0 ? 'var(--green)' : v < 0 ? 'var(--red)' : 'var(--muted)';
+}
+
+function pnlSign(v) {
+  return v > 0 ? '+' : '';
+}
+
+// 計算加權平均成本庫存
+function calcHoldings(trades) {
+  var holdings = {};
+  trades.forEach(function(t) {
+    var code   = t.code;
+    var qty    = num(t.qty);
+    var price  = num(t.price);
+    var action = t.action;
+    if (!code || !qty) return;
+
+    if (!holdings[code]) {
+      holdings[code] = { qty: 0, totalCost: 0, category: t.category, currency: t.currency };
+    }
+    var h = holdings[code];
+
+    if (action === '買入') {
+      h.totalCost += qty * price;
+      h.qty       += qty;
+    } else if (action === '賣出') {
+      // 賣出：按比例減少成本
+      if (h.qty > 0) {
+        var ratio    = qty / h.qty;
+        h.totalCost -= h.totalCost * ratio;
+        h.qty       -= qty;
+      }
+    }
+    // 配息不影響股數和成本
+  });
+
+  // 移除庫存為0的
+  Object.keys(holdings).forEach(function(k) {
+    if (holdings[k].qty <= 0.0001) delete holdings[k];
+  });
+
+  return holdings;
+}
+
+function renderHoldingRow(code, h, currentPrice, fx) {
+  var avgCost  = h.qty > 0 ? h.totalCost / h.qty : 0;
+  var costTWD  = h.currency === 'USD' ? h.totalCost * fx : h.totalCost;
+  var valueTWD = currentPrice
+    ? (h.currency === 'USD' ? h.qty * currentPrice * fx : h.qty * currentPrice)
+    : null;
+  var pnl      = valueTWD != null ? valueTWD - costTWD : null;
+  var pnlPct   = (pnl != null && costTWD > 0) ? pnl / costTWD * 100 : null;
+  var priceStr = currentPrice ? fmt(currentPrice, 2) : '--';
+  var valueStr = valueTWD != null ? 'NT$' + fmtM(valueTWD) : '--';
+  var pnlStr   = pnl != null ? (pnlSign(pnl) + 'NT$' + fmtM(pnl)) : '--';
+  var pnlPctStr = pnlPct != null ? (pnlSign(pnlPct) + pnlPct.toFixed(1) + '%') : '--';
+
+  return '<tr>' +
+    '<td style="font-family:\'JetBrains Mono\',monospace;font-weight:600;color:var(--blue)">' + code + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + fmt(h.qty, 0) + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + fmt(avgCost, 2) + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + priceStr + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace;color:var(--muted)">NT$' + fmtM(costTWD) + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + valueStr + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace;color:' + pnlColor(pnl) + '">' + pnlStr + '</td>' +
+    '<td class="r" style="font-family:\'JetBrains Mono\',monospace;font-weight:600;color:' + pnlColor(pnlPct) + '">' + pnlPctStr + '</td>' +
+  '</tr>';
+}
+
+async function loadAll() {
+  try {
+    // 並發讀取三個資料源
+    var results = await Promise.all([
+      fetch(csvUrl('交易日誌')),
+      fetch(csvUrl('每日股價')),
+      fetch(csvUrl('基金淨值'))
+    ]);
+
+    var tradeText = await results[0].text();
+    var priceText = results[1].ok ? await results[1].text() : '';
+    var navText   = results[2].ok ? await results[2].text() : '';
+
+    // 解析交易日誌
+    var tradeRows = parseCSV(tradeText).slice(1).filter(function(r) { return r[0]; });
+    var trades = tradeRows.map(function(r) {
+      return { date: r[0], category: r[1], code: r[2], action: r[3], qty: r[4], price: r[5], amount: r[6], currency: r[7], note: r[8]||'' };
+    });
+
+    // 計算庫存
+    var holdings = calcHoldings(trades);
+
+    // 最新股價 { 代號 -> 最新價格 }
+    var priceMap = {};
+    if (priceText) {
+      var priceRows = parseCSV(priceText).slice(1);
+      // 按日期排序取最新
+      priceRows.forEach(function(r) {
+        if (r[1] && r[2]) priceMap[r[1]] = num(r[2]);
+      });
+    }
+
+    // 基金淨值 { 名稱 -> 淨值 }
+    var navMap = {};
+    if (navText) {
+      var navRows = parseCSV(navText).slice(1);
+      navRows.forEach(function(r) {
+        if (r[0] && r[2]) navMap[r[0]] = num(r[2]);
+      });
+      // 名稱對應（安聯台灣科技→安聯科技）
+      if (navMap['安聯台灣科技']) navMap['安聯科技'] = navMap['安聯台灣科技'];
+      if (navMap['安聯台灣大壩']) navMap['安聯大壩'] = navMap['安聯台灣大壩'];
+    }
+
+    // 匯率從總表
+    var fx = 31.5;
+    try {
+      var totalRes  = await fetch(csvUrl('總表'));
+      var totalText = await totalRes.text();
+      var totalRows = parseCSV(totalText);
+      fx = num(totalRows[12][3]) || 31.5;
+    } catch(e) {}
+
+    // 分類
+    var usHoldings   = {};
+    var etfHoldings  = {};
+    var fundHoldings = {};
+    Object.keys(holdings).forEach(function(code) {
+      var h = holdings[code];
+      if (h.category === '美股')    usHoldings[code]   = h;
+      else if (h.category === '台股ETF')  etfHoldings[code]  = h;
+      else if (h.category === '台股基金') fundHoldings[code] = h;
+    });
+
+    // 計算總覽
+    var totalCostTWD = 0, totalValueTWD = 0;
+    Object.keys(holdings).forEach(function(code) {
+      var h = holdings[code];
+      var avgCost = h.qty > 0 ? h.totalCost / h.qty : 0;
+      var costTWD = h.currency === 'USD' ? h.totalCost * fx : h.totalCost;
+      totalCostTWD += costTWD;
+      var cp = priceMap[code] || navMap[code] || null;
+      if (cp) {
+        var valTWD = h.currency === 'USD' ? h.qty * cp * fx : h.qty * cp;
+        totalValueTWD += valTWD;
+      }
+    });
+    var totalPnl = totalValueTWD - totalCostTWD;
+
+    document.getElementById('stat-positions').textContent = Object.keys(holdings).length;
+    document.getElementById('stat-cost').textContent  = 'NT$' + fmtM(totalCostTWD);
+    document.getElementById('stat-value').textContent = totalValueTWD > 0 ? 'NT$' + fmtM(totalValueTWD) : '--';
+    document.getElementById('stat-pnl').textContent   = totalValueTWD > 0 ? (pnlSign(totalPnl) + 'NT$' + fmtM(totalPnl)) : '--';
+    document.getElementById('stat-pnl').style.color   = pnlColor(totalPnl);
+
+    // 渲染美股
+    var usKeys = Object.keys(usHoldings);
+    if (usKeys.length) {
+      document.getElementById('usTable').innerHTML = usKeys.map(function(code) {
+        return renderHoldingRow(code, usHoldings[code], priceMap[code] || null, fx);
+      }).join('');
+    } else {
+      document.getElementById('usTable').innerHTML = '<tr><td colspan="8" class="loading">無美股持倉</td></tr>';
+    }
+
+    // 渲染台股ETF
+    var etfKeys = Object.keys(etfHoldings);
+    if (etfKeys.length) {
+      document.getElementById('etfTable').innerHTML = etfKeys.map(function(code) {
+        return renderHoldingRow(code, etfHoldings[code], priceMap[code] || null, fx);
+      }).join('');
+    } else {
+      document.getElementById('etfTable').innerHTML = '<tr><td colspan="8" class="loading">無ETF持倉</td></tr>';
+    }
+
+    // 渲染基金
+    var fundKeys = Object.keys(fundHoldings);
+    if (fundKeys.length) {
+      document.getElementById('fundTable').innerHTML = fundKeys.map(function(code) {
+        return renderHoldingRow(code, fundHoldings[code], navMap[code] || null, fx);
+      }).join('');
+    } else {
+      document.getElementById('fundTable').innerHTML = '<tr><td colspan="8" class="loading">無基金持倉</td></tr>';
+    }
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('usTable').innerHTML   = '<tr><td colspan="8" class="loading" style="color:var(--red)">載入失敗：' + e.message + '</td></tr>';
+    document.getElementById('etfTable').innerHTML  = '<tr><td colspan="8" class="loading" style="color:var(--red)">載入失敗</td></tr>';
+    document.getElementById('fundTable').innerHTML = '<tr><td colspan="8" class="loading" style="color:var(--red)">載入失敗</td></tr>';
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>
