@@ -1098,11 +1098,13 @@ function buildTrendChart(navRows, ytd26, tgt26, spyData, myReturnData, myReturnN
   });
   if (spyData && spyData.some(v => v != null)) datasets.push({
     label: 'S&P500',
+    data: spyData,
+    borderColor: 'rgba(251,146,60,0.9)',
     borderDash: [3, 3],
     backgroundColor: 'transparent',
     tension: 0.3,
-    pointRadius: spyData.map(v => v != null ? 6 : 0),
-    pointBackgroundColor: 'rgba(248,113,113,0.9)',
+    pointRadius: spyData.map(v => v != null ? 5 : 0),
+    pointBackgroundColor: 'rgba(251,146,60,0.9)',
     spanGaps: true, yAxisID: 'y2'
   });
 
