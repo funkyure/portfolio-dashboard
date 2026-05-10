@@ -474,7 +474,7 @@ const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqmAVMdI05az2W_PFD
 const SHEET_ID = '16nVY0h2M8mDWFU-gubKtYlSHh9Fu4JOlx_n_p0YNwM4';
 
 function csvUrl(t) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}`;
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}&t=${Date.now()}`;
 }
 function parseCSV(t) {
   return t.trim().split('\n').map(r => {
@@ -697,9 +697,7 @@ async function saveEdit() {
       })
     });
     const j = await res.json();
-    if (j.success) { closeModal(); setTimeout(loadTrades, 800); }
-    else {
-      const msg = document.getElementById('editStatusMsg');
+    if (j.success) { closeModal(); setTimeout(loadTrades, 2000); }
       msg.textContent = '錯誤：' + j.error;
       msg.className = 'status-msg error'; msg.style.display = 'block';
     }
@@ -728,7 +726,7 @@ async function confirmDelete() {
       body: JSON.stringify({ action_type: 'delete', row: t.rowNum })
     });
     const j = await res.json();
-    if (j.success) { closeModal(); setTimeout(loadTrades, 800); }
+    if (j.success) { closeModal(); setTimeout(loadTrades, 2000); }
     else { alert('刪除失敗：' + j.error); }
   } catch(e) { alert('網路錯誤：' + e.message); }
   finally { btn.disabled = false; btn.textContent = '刪除'; }
