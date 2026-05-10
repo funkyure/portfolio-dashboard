@@ -6,278 +6,104 @@
   <title>交易日誌 | Trade Log</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg:     #080d14;
-      --bg2:    #0d1520;
-      --border: rgba(99,179,237,0.08);
-      --border2:rgba(99,179,237,0.25);
-      --text:   #e2e8f0;
-      --muted:  #64748b;
-      --green:  #34d399;
-      --blue:   #60a5fa;
-      --yellow: #fbbf24;
-      --red:    #f87171;
-      --purple: #a78bfa;
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px; line-height: 1.6;
-    }
-    body::before {
-      content: ''; position: fixed; inset: 0; z-index: 0;
-      background-image:
-        linear-gradient(rgba(96,165,250,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(96,165,250,0.03) 1px, transparent 1px);
-      background-size: 40px 40px; pointer-events: none;
-    }
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-
-    /* Header */
-    .header {
-      display: flex; justify-content: space-between;
-      align-items: flex-start; padding: 24px 0 28px;
-      flex-wrap: wrap; gap: 12px;
-    }
-    .header h1 {
-      font-family: 'DM Serif Display', serif; font-size: 26px;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .header-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
-    .btn {
-      padding: 7px 14px; border-radius: 20px; font-size: 12px;
-      cursor: pointer; font-family: 'DM Sans', sans-serif;
-      text-decoration: none; border: 1px solid;
-      transition: all 0.2s;
-    }
-    .btn-blue  { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.3); color: var(--blue); }
-    .btn-green { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); color: var(--green); }
-    .btn-red   { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
-
-    /* Card */
-    .card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 16px; padding: 24px; margin-bottom: 20px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .card:hover {
-      border-color: var(--border2);
-      box-shadow: 0 0 0 1px rgba(96,165,250,0.1), 0 8px 32px rgba(96,165,250,0.08);
-    }
-    .section-title {
-      font-size: 14px; font-weight: 600; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
-    }
-    .section-title::before {
-      content: ''; width: 3px; height: 14px;
-      background: linear-gradient(180deg, var(--blue), var(--purple));
-      border-radius: 2px;
-    }
-
-    /* Form */
-    .form-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 16px; margin-bottom: 20px;
-    }
-    @media(max-width:768px){ .form-grid { grid-template-columns: 1fr 1fr; } }
-    @media(max-width:480px){ .form-grid { grid-template-columns: 1fr; } }
-
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label {
-      font-size: 11px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .form-group input, .form-group select, .form-group textarea {
-      background: rgba(96,165,250,0.04);
-      border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 12px;
-      color: var(--text); font-family: 'DM Sans', sans-serif;
-      font-size: 13px; outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      border-color: rgba(96,165,250,0.4);
-      box-shadow: 0 0 0 3px rgba(96,165,250,0.08);
-    }
-    .form-group select option { background: #0d1520; }
-    .form-group textarea { resize: vertical; min-height: 60px; }
-
-    /* 快速填入按鈕 */
-    .quick-btns {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
-    }
-    .quick-btn {
-      background: rgba(96,165,250,0.06);
-      border: 1px solid var(--border);
-      border-radius: 20px; padding: 4px 12px;
-      font-size: 11px; color: var(--muted);
-      cursor: pointer; transition: all 0.2s;
-      font-family: 'DM Sans', sans-serif;
-    }
-    .quick-btn:hover { border-color: var(--border2); color: var(--text); }
-
-    /* Submit */
-    .submit-row {
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    }
-    .submit-btn {
-      background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(96,165,250,0.2));
-      border: 1px solid rgba(52,211,153,0.4);
-      color: var(--green); padding: 10px 28px;
-      border-radius: 24px; font-size: 14px; font-weight: 600;
-      cursor: pointer; font-family: 'DM Sans', sans-serif;
-      transition: all 0.2s;
-    }
-    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(52,211,153,0.2); }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .status-msg {
-      font-size: 13px; padding: 6px 14px;
-      border-radius: 12px; display: none;
-    }
-    .status-msg.success { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
-    .status-msg.error   { background: rgba(248,113,113,0.1); color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
-
-    /* Stats */
-    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
-    @media(max-width:768px){ .stats-grid { grid-template-columns: repeat(2,1fr); } }
-    .stat-card {
-      background: rgba(96,165,250,0.04);
-      border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 16px; text-align: center;
-    }
-    .stat-val { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 4px; }
-    .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-
-    /* Table */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th {
-      text-align: right; padding: 10px 8px; font-size: 10px;
-      color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
-      border-bottom: 1px solid var(--border);
-    }
-    th:first-child, th:nth-child(2), th:nth-child(3) { text-align: left; }
-    td { padding: 12px 8px; font-size: 13px; border-bottom: 1px solid rgba(148,163,184,0.04); text-align: right; }
-    td:first-child, td:nth-child(2), td:nth-child(3) { text-align: left; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(96,165,250,0.02); }
-
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 10px;
-      font-size: 10px; font-weight: 600;
-    }
-    .badge-buy  { background: rgba(52,211,153,0.12); color: var(--green); }
-    .badge-sell { background: rgba(248,113,113,0.12); color: var(--red); }
-    .badge-tw   { background: rgba(251,191,36,0.12);  color: var(--yellow); }
-    .badge-us   { background: rgba(96,165,250,0.12);  color: var(--blue); }
-    .badge-fund { background: rgba(167,139,250,0.12); color: var(--purple); }
-
-    .filter-row {
-      display: flex; gap: 10px; align-items: center;
-      margin-bottom: 16px; flex-wrap: wrap;
-    }
-    .filter-select {
-      background: rgba(96,165,250,0.04);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 6px 10px; color: var(--text);
-      font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none;
-    }
-    .search-input {
-      background: rgba(96,165,250,0.04);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 6px 12px; color: var(--text);
-      font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none;
-      width: 160px;
-    }
-    .loading { text-align: center; color: var(--muted); padding: 32px; }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 1000;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: var(--bg2); border: 1px solid var(--border2);
-      border-radius: 20px; padding: 28px; width: 90%; max-width: 560px;
-      max-height: 90vh; overflow-y: auto;
-    }
-    .modal-title {
-      font-family: 'DM Serif Display', serif; font-size: 1.2rem;
-      margin-bottom: 20px; display: flex; justify-content: space-between;
-    }
-    .modal-close {
-      cursor: pointer; color: var(--muted); font-size: 1.2rem;
-      background: none; border: none; color: var(--muted);
-    }
-    .modal-close:hover { color: var(--text); }
-
-    /* 操作按鈕 */
-    .action-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 6px; padding: 3px 8px; font-size: 10px;
-      cursor: pointer; font-family: 'DM Sans', sans-serif;
-      transition: all 0.2s;
-    }
-    .action-btn.edit { color: var(--blue); border-color: rgba(96,165,250,0.3); }
-    .action-btn.edit:hover { background: rgba(96,165,250,0.1); }
-    .action-btn.del  { color: var(--red);  border-color: rgba(248,113,113,0.3); }
-    .action-btn.del:hover  { background: rgba(248,113,113,0.1); }
+    :root{--bg:#080d14;--bg2:#0d1520;--border:rgba(99,179,237,0.08);--border2:rgba(99,179,237,0.25);--text:#e2e8f0;--muted:#64748b;--green:#34d399;--blue:#60a5fa;--yellow:#fbbf24;--red:#f87171;--purple:#a78bfa;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(96,165,250,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+    .container{max-width:1100px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 0 28px;flex-wrap:wrap;gap:12px;}
+    .header h1{font-family:'DM Serif Display',serif;font-size:26px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .header-sub{color:var(--muted);font-size:13px;margin-top:4px;}
+    .btn{padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;border:1px solid;transition:all 0.2s;}
+    .btn-blue{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:var(--blue);}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;transition:border-color 0.2s,box-shadow 0.2s;}
+    .card:hover{border-color:var(--border2);box-shadow:0 0 0 1px rgba(96,165,250,0.1),0 8px 32px rgba(96,165,250,0.08);}
+    .section-title{font-size:14px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+    .section-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--blue),var(--purple));border-radius:2px;}
+    .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+    @media(max-width:768px){.form-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+    .form-group{display:flex;flex-direction:column;gap:6px;}
+    .form-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+    .form-group input,.form-group select{background:rgba(96,165,250,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;}
+    .form-group input:focus,.form-group select:focus{border-color:rgba(96,165,250,0.4);}
+    .form-group select option{background:#0d1520;}
+    .quick-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+    .quick-btn{background:rgba(96,165,250,0.06);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--muted);cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+    .quick-btn:hover{border-color:var(--border2);color:var(--text);}
+    .submit-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .submit-btn{background:linear-gradient(135deg,rgba(52,211,153,0.2),rgba(96,165,250,0.2));border:1px solid rgba(52,211,153,0.4);color:var(--green);padding:10px 28px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+    .submit-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(52,211,153,0.2);}
+    .submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+    .status-msg{font-size:13px;padding:6px 14px;border-radius:12px;display:none;}
+    .status-msg.success{background:rgba(52,211,153,0.1);color:var(--green);border:1px solid rgba(52,211,153,0.2);}
+    .status-msg.error{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.2);}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    @media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+    .stat-card{background:rgba(96,165,250,0.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center;}
+    .stat-val{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:4px;}
+    .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .filter-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+    .filter-select,.search-input{background:rgba(96,165,250,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;}
+    .search-input{width:160px;}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{text-align:left;padding:10px 8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+    th.r{text-align:right;}
+    td{padding:12px 8px;font-size:13px;border-bottom:1px solid rgba(148,163,184,0.04);}
+    td.r{text-align:right;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(96,165,250,0.02);}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+    .badge-buy{background:rgba(52,211,153,0.12);color:var(--green);}
+    .badge-sell{background:rgba(248,113,113,0.12);color:var(--red);}
+    .badge-tw{background:rgba(251,191,36,0.12);color:var(--yellow);}
+    .badge-us{background:rgba(96,165,250,0.12);color:var(--blue);}
+    .badge-fund{background:rgba(167,139,250,0.12);color:var(--purple);}
+    .action-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;margin-left:4px;}
+    .action-btn.edit{color:var(--blue);border-color:rgba(96,165,250,0.3);}
+    .action-btn.edit:hover{background:rgba(96,165,250,0.1);}
+    .action-btn.del{color:var(--red);border-color:rgba(248,113,113,0.3);}
+    .action-btn.del:hover{background:rgba(248,113,113,0.1);}
+    .loading{text-align:center;color:var(--muted);padding:32px;}
+    .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;}
+    .modal-overlay.show{display:flex;}
+    .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:28px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+    .modal-close{cursor:pointer;background:none;border:none;color:var(--muted);font-size:1.2rem;}
+    .modal-close:hover{color:var(--text);}
   </style>
 </head>
 <body>
 <div class="container">
-
-  <!-- Header -->
   <div class="header">
     <div>
       <h1>📒 交易日誌</h1>
       <div class="header-sub">買賣記錄 · 自動同步 Google Sheet</div>
     </div>
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <a href="index.html" class="btn btn-blue">← 返回儀表板</a>
       <a href="strategy.html" class="btn" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:var(--purple);">📋 投資戰略</a>
     </div>
   </div>
 
-  <!-- 統計 -->
   <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-val" id="stat-total" style="color:var(--blue)">--</div>
-      <div class="stat-label">總筆數</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="stat-buy" style="color:var(--green)">--</div>
-      <div class="stat-label">買入筆數</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="stat-sell" style="color:var(--red)">--</div>
-      <div class="stat-label">賣出筆數</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="stat-amount" style="color:var(--yellow)">--</div>
-      <div class="stat-label">累積交易金額</div>
-    </div>
+    <div class="stat-card"><div class="stat-val" id="stat-total" style="color:var(--blue)">--</div><div class="stat-label">總筆數</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-buy" style="color:var(--green)">--</div><div class="stat-label">買入筆數</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-sell" style="color:var(--red)">--</div><div class="stat-label">賣出筆數</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-amount" style="color:var(--yellow)">--</div><div class="stat-label">累積金額</div></div>
   </div>
 
-  <!-- 新增交易 -->
   <div class="card">
     <div class="section-title">新增交易記錄</div>
-
-    <!-- 快速選擇常用標的 -->
-    <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">快速填入代號：</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">快速填入代號：</div>
     <div class="quick-btns">
-      <span class="quick-btn" onclick="quickFill('AAPU','美股','TWD')">AAPU</span>
-      <span class="quick-btn" onclick="quickFill('GGLL','美股','TWD')">GGLL</span>
-      <span class="quick-btn" onclick="quickFill('MSFU','美股','TWD')">MSFU</span>
-      <span class="quick-btn" onclick="quickFill('UNHG','美股','TWD')">UNHG</span>
-      <span class="quick-btn" onclick="quickFill('QLD','美股','TWD')">QLD</span>
-      <span class="quick-btn" onclick="quickFill('USD','美股','TWD')">USD</span>
+      <span class="quick-btn" onclick="quickFill('AAPU','美股','USD')">AAPU</span>
+      <span class="quick-btn" onclick="quickFill('GGLL','美股','USD')">GGLL</span>
+      <span class="quick-btn" onclick="quickFill('MSFU','美股','USD')">MSFU</span>
+      <span class="quick-btn" onclick="quickFill('UNHG','美股','USD')">UNHG</span>
+      <span class="quick-btn" onclick="quickFill('QLD','美股','USD')">QLD</span>
+      <span class="quick-btn" onclick="quickFill('USD','美股','USD')">USD</span>
       <span class="quick-btn" onclick="quickFill('00830','台股ETF','TWD')">00830</span>
       <span class="quick-btn" onclick="quickFill('00662','台股ETF','TWD')">00662</span>
       <span class="quick-btn" onclick="quickFill('0050','台股ETF','TWD')">0050</span>
@@ -290,14 +116,9 @@
       <span class="quick-btn" onclick="quickFill('安聯科技','台股基金','TWD')">安聯科技</span>
       <span class="quick-btn" onclick="quickFill('安聯大壩','台股基金','TWD')">安聯大壩</span>
     </div>
-
     <div class="form-grid">
-      <div class="form-group">
-        <label>日期</label>
-        <input type="date" id="f-date">
-      </div>
-      <div class="form-group">
-        <label>類別</label>
+      <div class="form-group"><label>日期</label><input type="date" id="f-date"></div>
+      <div class="form-group"><label>類別</label>
         <select id="f-category">
           <option value="美股">🇺🇸 美股</option>
           <option value="台股ETF">🇹🇼 台股ETF</option>
@@ -306,12 +127,8 @@
           <option value="其他">其他</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>代號 / 名稱</label>
-        <input type="text" id="f-code" placeholder="例如 AAPU、0050">
-      </div>
-      <div class="form-group">
-        <label>動作</label>
+      <div class="form-group"><label>代號 / 名稱</label><input type="text" id="f-code" placeholder="例如 AAPU、0050"></div>
+      <div class="form-group"><label>動作</label>
         <select id="f-action">
           <option value="買入">買入</option>
           <option value="賣出">賣出</option>
@@ -319,39 +136,24 @@
           <option value="其他">其他</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>數量 / 股數</label>
-        <input type="number" id="f-qty" placeholder="0" step="any">
-      </div>
-      <div class="form-group">
-        <label>價格</label>
-        <input type="number" id="f-price" placeholder="0.00" step="any">
-      </div>
-      <div class="form-group">
-        <label>金額（自動計算）</label>
-        <input type="number" id="f-amount" placeholder="0" step="any">
-      </div>
-      <div class="form-group">
-        <label>幣別</label>
+      <div class="form-group"><label>數量</label><input type="number" id="f-qty" placeholder="0" step="any"></div>
+      <div class="form-group"><label>價格</label><input type="number" id="f-price" placeholder="0.00" step="any"></div>
+      <div class="form-group"><label>金額（自動計算）</label><input type="number" id="f-amount" placeholder="0" step="any"></div>
+      <div class="form-group"><label>幣別</label>
         <select id="f-currency">
           <option value="TWD">TWD 台幣</option>
           <option value="USD">USD 美元</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>備註</label>
-        <input type="text" id="f-note" placeholder="例如：月定投、年終加碼">
-      </div>
+      <div class="form-group"><label>備註</label><input type="text" id="f-note" placeholder="例如：月定投、年終加碼"></div>
     </div>
-
     <div class="submit-row">
-      <button class="submit-btn" onclick="submitTrade()" id="submitBtn">✓ 新增記錄</button>
+      <button class="submit-btn" id="submitBtn" onclick="submitTrade()">✓ 新增記錄</button>
       <button class="btn btn-blue" onclick="clearForm()">✕ 清除</button>
       <span class="status-msg" id="statusMsg"></span>
     </div>
   </div>
 
-  <!-- 交易記錄列表 -->
   <div class="card">
     <div class="section-title">交易記錄</div>
     <div class="filter-row">
@@ -369,25 +171,24 @@
         <option value="賣出">賣出</option>
         <option value="配息">配息</option>
       </select>
-      <button class="btn btn-blue" onclick="loadTrades()" style="font-size:11px; padding:6px 12px;">↻ 重新載入</button>
+      <button class="btn btn-blue" onclick="loadTrades()" style="font-size:11px;padding:6px 12px;">↻ 重新載入</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th>日期</th><th>類別</th><th>代號</th><th>動作</th>
-            <th>數量</th><th>價格</th><th>金額</th><th>幣別</th><th>備註</th>
-            <th style="text-align:center;">操作</th>
+            <th class="r">數量</th><th class="r">價格</th><th class="r">金額</th>
+            <th>幣別</th><th>備註</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="tradeTable">
-          <tr><td colspan="9" class="loading">載入中...</td></tr>
+          <tr><td colspan="10" class="loading">載入中...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
-</div><!-- end container -->
+</div>
 
 <!-- 編輯 Modal -->
 <div class="modal-overlay" id="editModal">
@@ -397,12 +198,8 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="form-grid">
-      <div class="form-group">
-        <label>日期</label>
-        <input type="date" id="e-date">
-      </div>
-      <div class="form-group">
-        <label>類別</label>
+      <div class="form-group"><label>日期</label><input type="date" id="e-date"></div>
+      <div class="form-group"><label>類別</label>
         <select id="e-category">
           <option value="美股">🇺🇸 美股</option>
           <option value="台股ETF">🇹🇼 台股ETF</option>
@@ -411,12 +208,8 @@
           <option value="其他">其他</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>代號 / 名稱</label>
-        <input type="text" id="e-code">
-      </div>
-      <div class="form-group">
-        <label>動作</label>
+      <div class="form-group"><label>代號</label><input type="text" id="e-code"></div>
+      <div class="form-group"><label>動作</label>
         <select id="e-action">
           <option value="買入">買入</option>
           <option value="賣出">賣出</option>
@@ -424,32 +217,19 @@
           <option value="其他">其他</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>數量</label>
-        <input type="number" id="e-qty" step="any">
-      </div>
-      <div class="form-group">
-        <label>價格</label>
-        <input type="number" id="e-price" step="any">
-      </div>
-      <div class="form-group">
-        <label>金額</label>
-        <input type="number" id="e-amount" step="any">
-      </div>
-      <div class="form-group">
-        <label>幣別</label>
+      <div class="form-group"><label>數量</label><input type="number" id="e-qty" step="any"></div>
+      <div class="form-group"><label>價格</label><input type="number" id="e-price" step="any"></div>
+      <div class="form-group"><label>金額</label><input type="number" id="e-amount" step="any"></div>
+      <div class="form-group"><label>幣別</label>
         <select id="e-currency">
           <option value="TWD">TWD</option>
           <option value="USD">USD</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>備註</label>
-        <input type="text" id="e-note">
-      </div>
+      <div class="form-group"><label>備註</label><input type="text" id="e-note"></div>
     </div>
     <div class="submit-row">
-      <button class="submit-btn" onclick="saveEdit()" id="saveBtn">✓ 儲存</button>
+      <button class="submit-btn" id="saveBtn" onclick="saveEdit()">✓ 儲存</button>
       <button class="btn btn-blue" onclick="closeModal()">取消</button>
       <span class="status-msg" id="editStatusMsg"></span>
     </div>
@@ -458,12 +238,12 @@
 
 <!-- 刪除確認 Modal -->
 <div class="modal-overlay" id="deleteModal">
-  <div class="modal" style="max-width:400px; text-align:center;">
-    <div style="font-size:2rem; margin-bottom:12px;">🗑️</div>
-    <div style="font-size:1.1rem; font-weight:600; margin-bottom:8px;">確認刪除？</div>
-    <div id="deleteDesc" style="color:var(--muted); font-size:13px; margin-bottom:24px;"></div>
-    <div style="display:flex; gap:12px; justify-content:center;">
-      <button class="submit-btn" style="background:rgba(248,113,113,0.2); border-color:rgba(248,113,113,0.4); color:var(--red);" onclick="confirmDelete()" id="deleteBtn">刪除</button>
+  <div class="modal" style="max-width:400px;text-align:center;">
+    <div style="font-size:2rem;margin-bottom:12px;">🗑️</div>
+    <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;">確認刪除？</div>
+    <div id="deleteDesc" style="color:var(--muted);font-size:13px;margin-bottom:24px;"></div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button class="submit-btn" id="deleteBtn" onclick="confirmDelete()" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:var(--red);">刪除</button>
       <button class="btn btn-blue" onclick="closeModal()">取消</button>
     </div>
   </div>
@@ -473,260 +253,213 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqmAVMdI05az2W_PFD3jvw2OhA9Ct3h5ENFba-JBkg8NCdACtlN_7lx1Afl0Bbmg9YVQ/exec';
 const SHEET_ID = '16nVY0h2M8mDWFU-gubKtYlSHh9Fu4JOlx_n_p0YNwM4';
 
-function csvUrl(t) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}`;
+function csvUrl(tab) {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tab);
 }
-function parseCSV(t) {
-  return t.trim().split('\n').map(r => {
-    const res = []; let cur = ''; let inQ = false;
-    for (let i = 0; i < r.length; i++) {
-      if (r[i] === '"') { inQ = !inQ; }
-      else if (r[i] === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
-      else cur += r[i];
+
+function parseCSV(text) {
+  return text.trim().split('\n').map(function(row) {
+    var res = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+      if (row[i] === '"') { inQ = !inQ; }
+      else if (row[i] === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+      else cur += row[i];
     }
-    res.push(cur.trim()); return res;
+    res.push(cur.trim());
+    return res;
   });
 }
 
-let allTrades = [];
+function showStatus(msg, type) {
+  var el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + type;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
 
-// 設定今天日期
 document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
-// 數量×價格自動算金額
-['f-qty','f-price'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    const qty   = parseFloat(document.getElementById('f-qty').value) || 0;
-    const price = parseFloat(document.getElementById('f-price').value) || 0;
-    if (qty && price) document.getElementById('f-amount').value = (qty * price).toFixed(2);
-  });
-});
+document.getElementById('f-qty').addEventListener('input', calcAmount);
+document.getElementById('f-price').addEventListener('input', calcAmount);
+function calcAmount() {
+  var qty = parseFloat(document.getElementById('f-qty').value) || 0;
+  var price = parseFloat(document.getElementById('f-price').value) || 0;
+  if (qty && price) document.getElementById('f-amount').value = (qty * price).toFixed(2);
+}
 
 function quickFill(code, category, currency) {
   document.getElementById('f-code').value = code;
   document.getElementById('f-currency').value = currency;
-  // 設定類別
-  const catEl = document.getElementById('f-category');
-  for (let i = 0; i < catEl.options.length; i++) {
+  var catEl = document.getElementById('f-category');
+  for (var i = 0; i < catEl.options.length; i++) {
     if (catEl.options[i].value === category) { catEl.selectedIndex = i; break; }
   }
   document.getElementById('f-qty').focus();
 }
 
 function clearForm() {
-  document.getElementById('f-code').value = '';
-  document.getElementById('f-qty').value = '';
-  document.getElementById('f-price').value = '';
-  document.getElementById('f-amount').value = '';
-  document.getElementById('f-note').value = '';
+  ['f-code','f-qty','f-price','f-amount','f-note'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 }
 
-function showStatus(msg, type) {
-  const el = document.getElementById('statusMsg');
-  el.textContent = msg;
-  el.className = `status-msg ${type}`;
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
-}
-
 async function submitTrade() {
-  const date     = document.getElementById('f-date').value;
-  const category = document.getElementById('f-category').value;
-  const code     = document.getElementById('f-code').value.trim();
-  const action   = document.getElementById('f-action').value;
-  const qty      = parseFloat(document.getElementById('f-qty').value) || 0;
-  const price    = parseFloat(document.getElementById('f-price').value) || 0;
-  const amount   = parseFloat(document.getElementById('f-amount').value) || (qty * price);
-  const currency = document.getElementById('f-currency').value;
-  const note     = document.getElementById('f-note').value.trim();
-
-  if (!date || !code || !action) {
-    showStatus('請填入日期、代號和動作', 'error'); return;
-  }
-
-  const btn = document.getElementById('submitBtn');
+  var date     = document.getElementById('f-date').value;
+  var category = document.getElementById('f-category').value;
+  var code     = document.getElementById('f-code').value.trim();
+  var action   = document.getElementById('f-action').value;
+  var qty      = parseFloat(document.getElementById('f-qty').value) || 0;
+  var price    = parseFloat(document.getElementById('f-price').value) || 0;
+  var amount   = parseFloat(document.getElementById('f-amount').value) || (qty * price);
+  var currency = document.getElementById('f-currency').value;
+  var note     = document.getElementById('f-note').value.trim();
+  if (!date || !code) { showStatus('請填入日期和代號', 'error'); return; }
+  var btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '送出中...';
-
   try {
-    const res = await fetch(WEB_APP_URL, {
+    var res = await fetch(WEB_APP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action_type: 'add', date, category, code, action, qty, price, amount, currency, note })
+      body: JSON.stringify({ action_type: 'add', date: date, category: category, code: code, action: action, qty: qty, price: price, amount: amount, currency: currency, note: note })
     });
-    const j = await res.json();
-    if (j.success) {
-      showStatus('✓ 記錄成功！', 'success');
-      clearForm();
-      setTimeout(loadTrades, 1200);
-    } else {
-      showStatus('錯誤：' + (j.error || '未知錯誤'), 'error');
-    }
-  } catch(e) {
-    showStatus('網路錯誤：' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '✓ 新增記錄';
-  }
+    var j = await res.json();
+    if (j.success) { showStatus('✓ 記錄成功！', 'success'); clearForm(); setTimeout(loadTrades, 1500); }
+    else { showStatus('錯誤：' + (j.error || '未知'), 'error'); }
+  } catch(e) { showStatus('網路錯誤', 'error'); }
+  finally { btn.disabled = false; btn.textContent = '✓ 新增記錄'; }
 }
 
-// ── 載入記錄 ──
+var allTrades = [];
+
 async function loadTrades() {
   try {
-    const res = await fetch(csvUrl('交易日誌'));
+    var res = await fetch(csvUrl('交易日誌'));
     if (!res.ok) {
       document.getElementById('tradeTable').innerHTML = '<tr><td colspan="10" class="loading">尚無記錄</td></tr>';
       return;
     }
-    const rows = parseCSV(await res.text());
-    // 不reverse，保持原始順序，rowNum才會正確
-    allTrades = rows.slice(1).filter(r => r[0]).map((r, i) => ({
-      rowNum: i + 2, // Google Sheet 行號（第1行是標題，所以從2開始）
-      date: r[0], category: r[1], code: r[2], action: r[3],
-      qty: r[4], price: r[5], amount: r[6], currency: r[7], note: r[8]||''
-    }));
+    var rows = parseCSV(await res.text());
+    allTrades = rows.slice(1).filter(function(r) { return r.some(function(c) { return c; }); }).map(function(r, i) {
+      return { rowNum: i + 2, date: r[0]||'', category: r[1]||'', code: r[2]||'', action: r[3]||'', qty: r[4]||'', price: r[5]||'', amount: r[6]||'', currency: r[7]||'', note: r[8]||'' };
+    });
     updateStats();
     renderTable();
   } catch(e) {
-    document.getElementById('tradeTable').innerHTML = `<tr><td colspan="10" class="loading" style="color:var(--red)">載入失敗</td></tr>`;
+    document.getElementById('tradeTable').innerHTML = '<tr><td colspan="10" class="loading" style="color:var(--red)">載入失敗</td></tr>';
   }
 }
 
 function updateStats() {
-  const total  = allTrades.length;
-  const buys   = allTrades.filter(t => t.action === '買入').length;
-  const sells  = allTrades.filter(t => t.action === '賣出').length;
-  const amount = allTrades.reduce((a,t) => a + (parseFloat(t.amount)||0), 0);
-  document.getElementById('stat-total').textContent  = total;
+  var buys   = allTrades.filter(function(t) { return t.action === '買入'; }).length;
+  var sells  = allTrades.filter(function(t) { return t.action === '賣出'; }).length;
+  var amount = allTrades.reduce(function(a, t) { return a + (parseFloat(t.amount) || 0); }, 0);
+  document.getElementById('stat-total').textContent  = allTrades.length;
   document.getElementById('stat-buy').textContent    = buys;
   document.getElementById('stat-sell').textContent   = sells;
-  document.getElementById('stat-amount').textContent = amount >= 1e6
-    ? 'NT$' + (amount/1e6).toFixed(2) + 'M'
-    : 'NT$' + Math.round(amount).toLocaleString();
+  document.getElementById('stat-amount').textContent = amount >= 1e6 ? 'NT$' + (amount/1e6).toFixed(2) + 'M' : 'NT$' + Math.round(amount).toLocaleString();
 }
 
 function renderTable() {
-  const search    = document.getElementById('searchInput').value.toLowerCase();
-  const catFilter = document.getElementById('filterCategory').value;
-  const actFilter = document.getElementById('filterAction').value;
-
-  const filtered = allTrades.filter(t =>
-    (!search    || t.code.toLowerCase().includes(search) || t.note.toLowerCase().includes(search)) &&
-    (!catFilter || t.category === catFilter) &&
-    (!actFilter || t.action === actFilter)
-  );
-
+  var search    = document.getElementById('searchInput').value.toLowerCase();
+  var catFilter = document.getElementById('filterCategory').value;
+  var actFilter = document.getElementById('filterAction').value;
+  var filtered  = allTrades.filter(function(t) {
+    return (!search    || t.code.toLowerCase().indexOf(search) >= 0 || t.note.toLowerCase().indexOf(search) >= 0) &&
+           (!catFilter || t.category === catFilter) &&
+           (!actFilter || t.action   === actFilter);
+  });
   if (!filtered.length) {
     document.getElementById('tradeTable').innerHTML = '<tr><td colspan="10" class="loading">沒有符合的記錄</td></tr>';
     return;
   }
-
-  const catBadge = c => {
-    if (c === '美股')    return `<span class="badge badge-us">${c}</span>`;
-    if (c === '台股ETF') return `<span class="badge badge-tw">${c}</span>`;
-    if (c === '台股基金') return `<span class="badge badge-fund">${c}</span>`;
-    return `<span class="badge">${c}</span>`;
-  };
-  const actBadge = a => a === '買入'
-    ? `<span class="badge badge-buy">買入</span>`
-    : a === '賣出'
-    ? `<span class="badge badge-sell">賣出</span>`
-    : `<span class="badge">${a}</span>`;
-
-  // 反轉顯示（最新在前），但 idx 對應原始 allTrades
-  const display = [...filtered].reverse();
-  document.getElementById('tradeTable').innerHTML = display.map(t => {
-    const idx = allTrades.indexOf(t);
-    return `<tr>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${t.date}</td>
-      <td>${catBadge(t.category)}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue)">${t.code}</td>
-      <td>${actBadge(t.action)}</td>
-      <td style="font-family:'JetBrains Mono',monospace">${t.qty||'--'}</td>
-      <td style="font-family:'JetBrains Mono',monospace">${t.price||'--'}</td>
-      <td style="font-family:'JetBrains Mono',monospace">${t.amount ? Number(t.amount).toLocaleString() : '--'}</td>
-      <td style="color:var(--muted)">${t.currency}</td>
-      <td style="color:var(--muted);font-size:12px">${t.note}</td>
-      <td>
-        <button class="action-btn edit" onclick="openEdit(${idx})">✏️</button>
-        <button class="action-btn del"  onclick="openDelete(${idx})">🗑️</button>
-      </td>
-    </tr>`;
+  function catBadge(c) {
+    var cls = c === '美股' ? 'badge-us' : c === '台股ETF' ? 'badge-tw' : c === '台股基金' ? 'badge-fund' : '';
+    return '<span class="badge ' + cls + '">' + c + '</span>';
+  }
+  function actBadge(a) {
+    var cls = a === '買入' ? 'badge-buy' : a === '賣出' ? 'badge-sell' : '';
+    return '<span class="badge ' + cls + '">' + a + '</span>';
+  }
+  var display = filtered.slice().reverse();
+  document.getElementById('tradeTable').innerHTML = display.map(function(t) {
+    var idx = allTrades.indexOf(t);
+    return '<tr>' +
+      '<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted)">' + t.date + '</td>' +
+      '<td>' + catBadge(t.category) + '</td>' +
+      '<td style="font-family:\'JetBrains Mono\',monospace;font-weight:600;color:var(--blue)">' + t.code + '</td>' +
+      '<td>' + actBadge(t.action) + '</td>' +
+      '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + (t.qty||'--') + '</td>' +
+      '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + (t.price||'--') + '</td>' +
+      '<td class="r" style="font-family:\'JetBrains Mono\',monospace">' + (t.amount ? Number(t.amount).toLocaleString() : '--') + '</td>' +
+      '<td style="color:var(--muted)">' + t.currency + '</td>' +
+      '<td style="color:var(--muted);font-size:12px">' + t.note + '</td>' +
+      '<td><button class="action-btn edit" onclick="openEdit(' + idx + ')">✏️</button>' +
+           '<button class="action-btn del" onclick="openDelete(' + idx + ')">🗑️</button></td>' +
+    '</tr>';
   }).join('');
 }
 
-// ── 編輯 ──
-let editingIndex = null;
-
+var editingIndex = null;
 function openEdit(idx) {
   editingIndex = idx;
-  const t  = allTrades[idx];
-  const el = id => document.getElementById(id);
-  // 日期格式轉換
-  const datePart = (t.date||'').split(' ')[0].replace(/\//g, '-');
-  el('e-date').value     = datePart;
-  el('e-category').value = t.category;
-  el('e-code').value     = t.code;
-  el('e-action').value   = t.action;
-  el('e-qty').value      = t.qty;
-  el('e-price').value    = t.price;
-  el('e-amount').value   = t.amount;
-  el('e-currency').value = t.currency;
-  el('e-note').value     = t.note;
+  var t = allTrades[idx];
+  document.getElementById('e-date').value     = (t.date||'').split(' ')[0].replace(/\//g,'-');
+  document.getElementById('e-category').value = t.category;
+  document.getElementById('e-code').value     = t.code;
+  document.getElementById('e-action').value   = t.action;
+  document.getElementById('e-qty').value      = t.qty;
+  document.getElementById('e-price').value    = t.price;
+  document.getElementById('e-amount').value   = t.amount;
+  document.getElementById('e-currency').value = t.currency;
+  document.getElementById('e-note').value     = t.note;
   document.getElementById('editModal').classList.add('show');
 }
 
 async function saveEdit() {
-  const t   = allTrades[editingIndex];
-  const el  = id => document.getElementById(id);
-  const btn = document.getElementById('saveBtn');
-  console.log('編輯 rowNum:', t.rowNum, 'editingIndex:', editingIndex);
+  var t   = allTrades[editingIndex];
+  var btn = document.getElementById('saveBtn');
   btn.disabled = true; btn.textContent = '儲存中...';
+  var payload = {
+    action_type: 'update', row: t.rowNum,
+    date:     document.getElementById('e-date').value,
+    category: document.getElementById('e-category').value,
+    code:     document.getElementById('e-code').value,
+    action:   document.getElementById('e-action').value,
+    qty:      parseFloat(document.getElementById('e-qty').value) || 0,
+    price:    parseFloat(document.getElementById('e-price').value) || 0,
+    amount:   parseFloat(document.getElementById('e-amount').value) || 0,
+    currency: document.getElementById('e-currency').value,
+    note:     document.getElementById('e-note').value
+  };
   try {
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action_type: 'update', row: t.rowNum,
-        date:     el('e-date').value,
-        category: el('e-category').value,
-        code:     el('e-code').value,
-        action:   el('e-action').value,
-        qty:      parseFloat(el('e-qty').value)||0,
-        price:    parseFloat(el('e-price').value)||0,
-        amount:   parseFloat(el('e-amount').value)||0,
-        currency: el('e-currency').value,
-        note:     el('e-note').value
-      })
-    });
-    const j = await res.json();
-    if (j.success) { closeModal(); setTimeout(loadTrades, 2000); }
-      msg.textContent = '錯誤：' + j.error;
-      msg.className = 'status-msg error'; msg.style.display = 'block';
+    var res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var j = await res.json();
+    if (j.success) { closeModal(); setTimeout(loadTrades, 1500); }
+    else {
+      var msg = document.getElementById('editStatusMsg');
+      msg.textContent = '錯誤：' + j.error; msg.className = 'status-msg error'; msg.style.display = 'block';
     }
   } catch(e) { alert('網路錯誤：' + e.message); }
   finally { btn.disabled = false; btn.textContent = '✓ 儲存'; }
 }
 
-// ── 刪除 ──
-let deletingIndex = null;
-
+var deletingIndex = null;
 function openDelete(idx) {
   deletingIndex = idx;
-  const t = allTrades[idx];
-  document.getElementById('deleteDesc').textContent =
-    `${t.date} · ${t.code} · ${t.action} · NT$${Number(t.amount||0).toLocaleString()}`;
+  var t = allTrades[idx];
+  document.getElementById('deleteDesc').textContent = t.date + ' · ' + t.code + ' · ' + t.action + ' · ' + (t.currency||'') + ' ' + (t.amount||'');
   document.getElementById('deleteModal').classList.add('show');
 }
 
 async function confirmDelete() {
-  const t   = allTrades[deletingIndex];
-  const btn = document.getElementById('deleteBtn');
+  var t   = allTrades[deletingIndex];
+  var btn = document.getElementById('deleteBtn');
   btn.disabled = true; btn.textContent = '刪除中...';
   try {
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action_type: 'delete', row: t.rowNum })
-    });
-    const j = await res.json();
-    if (j.success) { closeModal(); setTimeout(loadTrades, 2000); }
+    var res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action_type: 'delete', row: t.rowNum }) });
+    var j = await res.json();
+    if (j.success) { closeModal(); setTimeout(loadTrades, 1500); }
     else { alert('刪除失敗：' + j.error); }
   } catch(e) { alert('網路錯誤：' + e.message); }
   finally { btn.disabled = false; btn.textContent = '刪除'; }
