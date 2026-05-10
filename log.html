@@ -678,6 +678,7 @@ async function saveEdit() {
   const t   = allTrades[editingIndex];
   const el  = id => document.getElementById(id);
   const btn = document.getElementById('saveBtn');
+  console.log('編輯 rowNum:', t.rowNum, 'editingIndex:', editingIndex);
   btn.disabled = true; btn.textContent = '儲存中...';
   try {
     const res = await fetch(WEB_APP_URL, {
