@@ -1219,6 +1219,20 @@ setTimeout(() => location.reload(), 15 * 60 * 1000);
 // ── 主要資料讀取 ──
 // ── 極簡模式（隱藏金額只顯示%） ──
 let simpleMode = false;
+const AMOUNT_IDS = [
+  // YTD大格
+  'ytdBig', 'ytdRateBig',
+  // 6格小卡
+  'grandTotalVal', 'netAssetVal', 'athCardVal', 'athNetCardVal',
+  // IB投組
+  'ibNetBig', 'ibLevBig', 'bondIntVal', 'cashInflowVal', 'cashOutflowVal',
+  // 台灣ETF+基金
+  'twETFBig', 'twFundBig',
+  // 目標進度
+  'goalCurrent', 'goalRemain',
+  // 斷路器
+  'breakerMaintain', 'breakerBuffer', 'breakerGap',
+];
 function toggleSimple() {
   simpleMode = !simpleMode;
   const btn = document.getElementById('simpleBtn');
@@ -1227,17 +1241,24 @@ function toggleSimple() {
     btn.style.color = 'var(--green)';
     btn.style.borderColor = 'rgba(52,211,153,0.3)';
     btn.style.background = 'rgba(52,211,153,0.1)';
-    // 隱藏所有金額元素，用 data-simple-hide class
-    document.querySelectorAll('.amount-val').forEach(el => {
-      el.dataset.orig = el.textContent;
-      el.textContent = '--';
+    AMOUNT_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.dataset.orig = el.textContent; el.textContent = '****'; }
+    });
+    // 也隱藏表格內的金額
+    document.querySelectorAll('td[data-amount]').forEach(el => {
+      el.dataset.orig = el.textContent; el.textContent = '****';
     });
   } else {
     btn.textContent = '👁 極簡模式';
     btn.style.color = 'var(--muted)';
     btn.style.borderColor = 'rgba(100,116,139,0.3)';
     btn.style.background = 'rgba(100,116,139,0.1)';
-    document.querySelectorAll('.amount-val').forEach(el => {
+    AMOUNT_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.dataset.orig) el.textContent = el.dataset.orig;
+    });
+    document.querySelectorAll('td[data-amount]').forEach(el => {
       if (el.dataset.orig) el.textContent = el.dataset.orig;
     });
   }
