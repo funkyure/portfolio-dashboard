@@ -325,6 +325,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
       <div style="display:flex; align-items:center; gap:10px;">
         <div id="updateBadge" style="font-size:11px; color:var(--muted);">最後更新 --</div>
+        <button onclick="toggleSimple()" id="simpleBtn" style="background:rgba(100,116,139,0.1); border:1px solid rgba(100,116,139,0.3); color:var(--muted); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">👁 極簡模式</button>
         <button onclick="window.location.href='strategy.html'" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); color:var(--purple); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📋 投資戰略</button>
         <button onclick="window.location.href='log.html'" style="background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:var(--yellow); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📒 交易日誌</button>
         <button onclick="window.location.href='holdings.html'" style="background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--green); padding:6px 12px; border-radius:20px; font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif;">📦 庫存</button>
@@ -437,9 +438,18 @@ tr:hover td { background: rgba(96,165,250,0.03); }
         <div style="font-size:11px; color:var(--muted); margin-top:4px;">距500%還有</div>
       </div>
     </div>
+      <!-- 反推計算 -->
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="background:rgba(248,113,113,0.05); border:1px solid rgba(248,113,113,0.1); border-radius:10px; padding:10px 14px;">
+          <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">台股再跌多少觸發斷路器(500%)</div>
+          <div style="font-size:1.3rem; font-weight:700; font-family:'DM Serif Display',serif;" id="dropToBreaker">--</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.05); border:1px solid rgba(248,113,113,0.1); border-radius:10px; padding:10px 14px;">
+          <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">台股再跌多少觸發追繳(140%)</div>
+          <div style="font-size:1.3rem; font-weight:700; font-family:'DM Serif Display',serif;" id="dropToMarginCall">--</div>
+        </div>
+      </div>
   </div>
-
-  <!-- Risk Gauges -->
   <div class="risk-card">
     <div class="section-title">風險指標</div>
     <div class="gauge-grid">
@@ -555,7 +565,7 @@ tr:hover td { background: rgba(96,165,250,0.03); }
       <!-- 利差健康度 -->
       <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">利差健康度（Carry Spread）</div>
-        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
           <div>
             <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">息收覆蓋率</div>
             <div style="font-size:1.1rem;font-weight:600;" id="carryCoverageVal">--</div>
@@ -570,6 +580,24 @@ tr:hover td { background: rgba(96,165,250,0.03); }
             <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">債券年化息收</div>
             <div style="font-size:1.1rem;font-weight:600;" id="bondIntVal">--</div>
             <div style="font-size:10px;color:var(--muted);">USD/年</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">現金流覆蓋率（永動機指標）</div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">覆蓋率</div>
+            <div style="font-size:1.1rem;font-weight:600;" id="cashCoverageVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">流入/流出</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">月現金流入</div>
+            <div style="font-size:1.1rem;font-weight:600;color:var(--green);" id="cashInflowVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">債息+租金</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">月現金流出</div>
+            <div style="font-size:1.1rem;font-weight:600;color:var(--red);" id="cashOutflowVal">--</div>
+            <div style="font-size:10px;color:var(--muted);">融資+房貸利息</div>
           </div>
         </div>
       </div>
@@ -1189,6 +1217,32 @@ async function fetchFearGreed() {
 setTimeout(() => location.reload(), 15 * 60 * 1000);
 
 // ── 主要資料讀取 ──
+// ── 極簡模式（隱藏金額只顯示%） ──
+let simpleMode = false;
+function toggleSimple() {
+  simpleMode = !simpleMode;
+  const btn = document.getElementById('simpleBtn');
+  if (simpleMode) {
+    btn.textContent = '👁 顯示金額';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'rgba(52,211,153,0.3)';
+    btn.style.background = 'rgba(52,211,153,0.1)';
+    // 隱藏所有金額元素，用 data-simple-hide class
+    document.querySelectorAll('.amount-val').forEach(el => {
+      el.dataset.orig = el.textContent;
+      el.textContent = '--';
+    });
+  } else {
+    btn.textContent = '👁 極簡模式';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'rgba(100,116,139,0.3)';
+    btn.style.background = 'rgba(100,116,139,0.1)';
+    document.querySelectorAll('.amount-val').forEach(el => {
+      if (el.dataset.orig) el.textContent = el.dataset.orig;
+    });
+  }
+}
+
 async function loadAll() {
   try {
     // 所有資料同時並發抓取
@@ -1829,7 +1883,23 @@ async function loadAll() {
       csEl.style.color = carrySpread >= 0 ? 'var(--green)' : 'var(--red)';
     }
 
-    const GOAL = 50000000; // 5000萬
+    // ── 現金流覆蓋率 ──
+    const RENT_MONTHLY    = 20800;   // 租金收入 TWD/月
+    const MORTGAGE_INT    = 22861;   // 房貸利息 TWD/月
+    const bondMonthlyTWD  = bondIntAnnual * fx / 12;  // 債券月息換算TWD
+    const ibMonthlyIntTWD = Math.abs(ibLev||0) * 0.0514 / 12 * fx; // IB月利息TWD
+    const cashInflow  = bondMonthlyTWD + RENT_MONTHLY;
+    const cashOutflow = ibMonthlyIntTWD + MORTGAGE_INT;
+    const cashCoverage = cashOutflow > 0 ? cashInflow / cashOutflow : null;
+    const cashCoverageEl = document.getElementById('cashCoverageVal');
+    const cashInflowEl   = document.getElementById('cashInflowVal');
+    const cashOutflowEl  = document.getElementById('cashOutflowVal');
+    if (cashCoverageEl && cashCoverage != null) {
+      cashCoverageEl.textContent = cashCoverage.toFixed(2) + 'x';
+      cashCoverageEl.style.color = cashCoverage >= 1 ? 'var(--green)' : 'var(--red)';
+    }
+    if (cashInflowEl)  cashInflowEl.textContent  = 'NT$' + fmt(cashInflow);
+    if (cashOutflowEl) cashOutflowEl.textContent = 'NT$' + fmt(cashOutflow);
     const goalPct = netAsset / GOAL * 100;
     const goalBar = document.getElementById('goalBar');
     if (goalBar) goalBar.style.width = Math.min(goalPct, 100) + '%';
@@ -1888,7 +1958,22 @@ async function loadAll() {
         breakerGapEl.textContent = (gap > 0 ? '+' : '') + gap.toFixed(0) + '%';
         breakerGapEl.style.color = gap < 0 ? 'var(--red)' : gap < 100 ? 'var(--yellow)' : 'var(--green)';
       }
-    }
+      // 反推：台股再跌多少%觸發斷路器/追繳
+      const twTotalV = twETFV + twFundV;
+      if (twTotalV > 0 && twPledge > 0) {
+        const dropToBreaker    = (1 - (BREAKER * twPledge) / twTotalV) * 100;
+        const dropToMarginCall = (1 - (MARGIN_CALL_F * twPledge) / twTotalV) * 100;
+        const d2bEl = document.getElementById('dropToBreaker');
+        const d2mEl = document.getElementById('dropToMarginCall');
+        if (d2bEl) {
+          d2bEl.textContent = dropToBreaker > 0 ? '-' + dropToBreaker.toFixed(1) + '%' : '已觸發';
+          d2bEl.style.color = dropToBreaker < 10 ? 'var(--red)' : dropToBreaker < 20 ? 'var(--yellow)' : 'var(--green)';
+        }
+        if (d2mEl) {
+          d2mEl.textContent = dropToMarginCall > 0 ? '-' + dropToMarginCall.toFixed(1) + '%' : '已觸發';
+          d2mEl.style.color = dropToMarginCall < 5 ? 'var(--red)' : dropToMarginCall < 15 ? 'var(--yellow)' : 'var(--green)';
+        }
+      }
 
     // ── 壓力測試（加入台股維持率計算）──
     window._stressData = { grandTotal, usStockTWD, twETFV, twFundV, bondTWD, twPledge, maintainFR };
