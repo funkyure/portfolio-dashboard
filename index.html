@@ -1361,6 +1361,7 @@ async function loadAll() {
     // 計算今日漲跌和今年以來
     function calcChg(code, currentPrice) {
       const rows = dailyMap[code];
+      if (code === 'AAPU') console.log('AAPU dailyMap:', JSON.stringify(rows?.slice(-3)));
       // 今日漲跌：需要昨日資料
       let todayChg = null;
       if (rows && rows.length >= 2) {
@@ -1671,7 +1672,7 @@ async function loadAll() {
       const { todayChg, ytdChg } = calcChg(s.ticker, num(s.price));
       const isLev = leveraged.includes(s.ticker);
       return `<tr>
-        <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker} ↗</a></td>
+        <td><a href="https://finance.yahoo.com/quote/${s.ticker}" target="_blank" style="color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.ticker}${isLev ? ' <span style="font-size:9px;color:var(--yellow);">⚡</span>' : ''} ↗</a></td>
         <td>US${s.val||'--'}</td>
         <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayChg)}
@@ -1691,7 +1692,7 @@ async function loadAll() {
       const todayFinal = liveChg != null ? liveChg : todayChg;
       const isLev = leveraged.includes(s.code);
       return `<tr>
-        <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code} ↗</a></td>
+        <td><a href="https://tw.stock.yahoo.com/quote/${s.code}" target="_blank" style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;">${s.code}${isLev ? ' <span style="font-size:9px;color:var(--yellow);">⚡</span>' : ''} ↗</a></td>
         <td>${s.val||'--'}</td>
         <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace">${s.price||'--'}</td>
         ${changeCell(todayFinal)}
