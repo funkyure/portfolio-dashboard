@@ -1341,9 +1341,9 @@ async function loadAll() {
         if (!dailyMap[code]) dailyMap[code] = [];
         dailyMap[code].push({ date, price });
       }
-      // 每個代號按日期排序
+      // 每個代號按日期排序（用Date物件，避免字串排序錯誤）
       Object.keys(dailyMap).forEach(k => {
-        dailyMap[k].sort((a,b) => a.date.localeCompare(b.date));
+        dailyMap[k].sort((a,b) => new Date(a.date) - new Date(b.date));
       });
     }
 
